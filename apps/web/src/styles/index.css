@@ -2,22 +2,137 @@
 
 :root {
   color-scheme: light;
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-  background: #f7f8f5;
-  color: #17201b;
+
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --text: #111827;
+  --text-muted: #6b7280;
+  --text-subtle: #9ca3af;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+
+  --brand: #22c55e;
+  --brand-hover: #16a34a;
+  --brand-soft: #dcfce7;
+  --brand-soft-2: #ecfdf5;
+  --dark-accent: #0f172a;
+
+  --success: #22c55e;
+  --success-soft: #dcfce7;
+  --warning: #f59e0b;
+  --warning-soft: #fef3c7;
+  --error: #ef4444;
+  --error-soft: #fee2e2;
+  --info: #3b82f6;
+  --info-soft: #dbeafe;
+
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  --elevation-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --elevation-md: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --elevation-lg: 0 10px 24px -8px rgba(15, 23, 42, 0.12), 0 4px 10px -4px rgba(15, 23, 42, 0.06);
+  --elevation-pop: 0 18px 40px -12px rgba(15, 23, 42, 0.18);
+
+  --sidebar-width: 232px;
+  --header-height: 60px;
+  --mobile-nav-height: 64px;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: #0b1220;
+  --surface: #111827;
+  --surface-2: #1a2235;
+  --text: #f9fafb;
+  --text-muted: #9ca3af;
+  --text-subtle: #6b7280;
+  --border: #1f2937;
+  --border-strong: #2a3445;
+
+  --brand-soft: rgba(34, 197, 94, 0.14);
+  --brand-soft-2: rgba(34, 197, 94, 0.08);
+
+  --success-soft: rgba(34, 197, 94, 0.16);
+  --warning-soft: rgba(245, 158, 11, 0.16);
+  --error-soft: rgba(239, 68, 68, 0.16);
+  --info-soft: rgba(59, 130, 246, 0.16);
+
+  --elevation-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --elevation-md: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --elevation-lg: 0 10px 24px -8px rgba(0, 0, 0, 0.5);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-subtle: var(--text-subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-soft-2: var(--brand-soft-2);
+  --color-dark-accent: var(--dark-accent);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-error: var(--error);
+  --color-error-soft: var(--error-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  --shadow-sm: var(--elevation-sm);
+  --shadow-md: var(--elevation-md);
+  --shadow-lg: var(--elevation-lg);
+  --shadow-pop: var(--elevation-pop);
+
+  --spacing-sidebar: var(--sidebar-width);
+  --spacing-header: var(--header-height);
+  --spacing-mobile-nav: var(--mobile-nav-height);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: var(--background);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizelegibility;
 }
 
 body {
-  min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  background: var(--background);
+  color: var(--text);
 }
 
 button,
@@ -25,4 +140,24 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  color: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
 }

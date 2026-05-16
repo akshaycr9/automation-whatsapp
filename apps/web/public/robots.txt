@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /
+
+# QW Automations is a private store operations app.
+# Do not crawl or index any route.
