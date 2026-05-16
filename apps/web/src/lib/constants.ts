@@ -1,1 +1,1 @@
-export const APP_NAME = "QW Automations";
+export const APP_NAME = "Whatsapp Automation";
