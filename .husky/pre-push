@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+# Broader pre-push gate. Build is left to CI for now and can be added here later
+# if it remains fast and stable.
+pnpm lint
+pnpm typecheck
+pnpm test -- --run

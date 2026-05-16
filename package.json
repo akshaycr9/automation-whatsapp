@@ -1,0 +1,41 @@
+{
+  "name": "qw-automations",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @qw-automations/web --filter @qw-automations/api dev",
+    "dev:web": "pnpm --filter @qw-automations/web dev",
+    "dev:api": "pnpm --filter @qw-automations/api dev",
+    "build": "pnpm -r build",
+    "prepare": "husky",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "pnpm -r typecheck",
+    "test": "node scripts/run-tests.mjs",
+    "test:watch": "pnpm -r test:watch",
+    "test:web": "pnpm --filter @qw-automations/web test",
+    "test:api": "pnpm --filter @qw-automations/api test",
+    "test:shared": "pnpm --filter @qw-automations/shared test",
+    "test:coverage": "pnpm -r test:coverage",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "devDependencies": {
+    "@prisma/client": "^6.1.0",
+    "@types/node": "^22.10.2",
+    "eslint": "^9.17.0",
+    "globals": "^15.14.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.11",
+    "prettier": "^3.4.2",
+    "prisma": "^6.1.0",
+    "tsx": "^4.19.2",
+    "typescript-eslint": "^8.18.2",
+    "typescript": "^5.7.2"
+  }
+}

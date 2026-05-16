@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Shell|exec_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .codex/hooks/pre_tool_use_policy.mjs"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|apply_patch|exec_command|Bash|Shell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .codex/hooks/post_tool_use_quality_check.mjs"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .codex/hooks/stop_quality_summary.mjs"
+          }
+        ]
+      }
+    ]
+  }
+}
