@@ -1,39 +1,40 @@
-import { NavLink, Outlet } from "react-router";
+import { Outlet, useLocation, useNavigate } from "react-router";
 import { APP_NAME } from "@/lib/constants";
-
-const navItems = [
-  ["Dashboard", "/dashboard"],
-  ["Templates", "/templates"],
-  ["Automations", "/automations"],
-  ["Conversations", "/conversations"],
-  ["Logs", "/logs"],
-  ["Settings", "/settings"]
-] as const;
+import { cn } from "@/lib/utils";
+import { MobileNav } from "./app-shell/mobile-nav";
+import { navItems, secondaryRouteMeta } from "./app-shell/nav-items";
+import { Sidebar } from "./app-shell/sidebar";
+import { Topbar } from "./app-shell/topbar";
+import { TopbarAction } from "./app-shell/topbar-action";
 
 export function AppShell() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const currentPrimary = navItems.find((item) => location.pathname.startsWith(item.href));
+  const secondaryMeta = secondaryRouteMeta[location.pathname];
+  const title = secondaryMeta?.title ?? currentPrimary?.title ?? APP_NAME;
+  const subtitle = secondaryMeta?.subtitle ?? currentPrimary?.subtitle;
+
   return (
-    <div className="min-h-screen bg-[#f7f8f5]">
-      <header className="border-b border-[#d8e0da] bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 md:flex-row md:items-center md:justify-between">
-          <strong>{APP_NAME}</strong>
-          <nav aria-label="Primary navigation" className="flex gap-2 overflow-x-auto">
-            {navItems.map(([label, href]) => (
-              <NavLink
-                key={href}
-                to={href}
-                className={({ isActive }) =>
-                  `rounded-md px-3 py-2 text-sm ${isActive ? "bg-[#1f6f50] text-white" : "text-[#344139] hover:bg-[#eef3ef]"}`
-                }
-              >
-                {label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-6">
-        <Outlet />
-      </main>
+    <div className="min-h-screen bg-background text-text">
+      <Sidebar />
+      <div className="min-h-screen pb-mobile-nav md:pb-0 md:pl-sidebar">
+        <Topbar
+          title={title}
+          subtitle={subtitle}
+          backAction={secondaryMeta ? () => navigate(secondaryMeta.backTo) : undefined}
+          right={<TopbarAction pathname={location.pathname} />}
+        />
+        <main
+          className={cn(
+            "min-h-[calc(100vh-var(--header-height))] px-4 py-5 sm:px-5 lg:px-6",
+            location.pathname === "/conversations" && "overflow-hidden md:p-5.5"
+          )}
+        >
+          <Outlet />
+        </main>
+      </div>
+      <MobileNav />
     </div>
   );
 }
