@@ -1,6 +1,6 @@
 # Screens
 
-- Login
+- Login (`apps/web/src/features/auth/pages/login-page.tsx`)
 - Dashboard
 - Templates list
 - Create template
