@@ -13,9 +13,28 @@ it("renders accessible login controls", () => {
   renderWithProviders(<LoginForm initialValues={initialValues} />);
 
   expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-  expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /show password/i })).toBeInTheDocument();
   expect(screen.queryByLabelText(/remember this device/i)).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
+});
+
+it("toggles password visibility", async () => {
+  const user = userEvent.setup();
+  renderWithProviders(<LoginForm initialValues={initialValues} />);
+
+  const passwordInput = screen.getByLabelText(/^password$/i);
+
+  expect(passwordInput).toHaveAttribute("type", "password");
+
+  await user.click(screen.getByRole("button", { name: /show password/i }));
+
+  expect(passwordInput).toHaveAttribute("type", "text");
+  expect(screen.getByRole("button", { name: /hide password/i })).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: /hide password/i }));
+
+  expect(passwordInput).toHaveAttribute("type", "password");
 });
 
 it("shows validation errors when submitted empty", async () => {
@@ -37,7 +56,7 @@ it("submits locally without calling a backend", async () => {
   renderWithProviders(<LoginForm initialValues={initialValues} onSubmit={onSubmit} />);
 
   await user.type(screen.getByLabelText(/email/i), "admin@qwapparel.in");
-  await user.type(screen.getByLabelText(/password/i), "password123");
+  await user.type(screen.getByLabelText(/^password$/i), "password123");
   await user.click(screen.getByRole("button", { name: /sign in/i }));
 
   expect(onSubmit).toHaveBeenCalledWith({

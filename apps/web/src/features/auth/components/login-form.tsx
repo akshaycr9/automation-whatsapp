@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ type LoginFormProps = {
 };
 
 export function LoginForm({ isLoading = false, errorMessage, initialValues, onSubmit }: LoginFormProps) {
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const {
     register,
     handleSubmit,
@@ -62,15 +64,27 @@ export function LoginForm({ isLoading = false, errorMessage, initialValues, onSu
         <label className="text-sm font-medium text-text-muted" htmlFor="login-password">
           Password
         </label>
-        <Input
-          id="login-password"
-          autoComplete="current-password"
-          placeholder="Enter your password"
-          type="password"
-          aria-invalid={errors.password ? "true" : "false"}
-          aria-describedby={errors.password ? "login-password-error" : undefined}
-          {...register("password")}
-        />
+        <div className="relative">
+          <Input
+            id="login-password"
+            autoComplete="current-password"
+            className="pr-11"
+            placeholder="Enter your password"
+            type={isPasswordVisible ? "text" : "password"}
+            aria-invalid={errors.password ? "true" : "false"}
+            aria-describedby={errors.password ? "login-password-error" : undefined}
+            {...register("password")}
+          />
+          <button
+            aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+            aria-pressed={isPasswordVisible}
+            className="absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-sm text-text-subtle transition hover:bg-surface-2 hover:text-text"
+            type="button"
+            onClick={() => setIsPasswordVisible((current) => !current)}
+          >
+            {isPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
+          </button>
+        </div>
         {errors.password ? (
           <p className="text-xs text-error" id="login-password-error">
             {errors.password.message}
@@ -86,5 +100,48 @@ export function LoginForm({ isLoading = false, errorMessage, initialValues, onSu
         Single-admin access. Keep this dashboard on a trusted device.
       </p>
     </form>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M2.5 12s3.25-6 9.5-6 9.5 6 9.5 6-3.25 6-9.5 6-9.5-6-9.5-6Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+      <path
+        d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 24 24">
+      <path d="m3 3 18 18" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+      <path
+        d="M10.6 10.6A2 2 0 0 0 12 14a2 2 0 0 0 1.4-.6"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+      <path
+        d="M7.1 7.6C4.2 9.2 2.5 12 2.5 12s3.25 6 9.5 6c1.7 0 3.18-.45 4.42-1.1M19.1 14.45c1.55-1.2 2.4-2.45 2.4-2.45S18.25 6 12 6c-.7 0-1.36.08-1.98.23"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
   );
 }
