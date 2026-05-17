@@ -1,7 +1,6 @@
-import { screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
-import { renderWithProviders } from "@/test/test-utils";
 import { LoginForm } from "../components/login-form";
 
 const initialValues = {
@@ -10,7 +9,7 @@ const initialValues = {
 };
 
 it("renders accessible login controls", () => {
-  renderWithProviders(<LoginForm initialValues={initialValues} />);
+  render(<LoginForm initialValues={initialValues} />);
 
   expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
   expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
@@ -21,7 +20,7 @@ it("renders accessible login controls", () => {
 
 it("toggles password visibility", async () => {
   const user = userEvent.setup();
-  renderWithProviders(<LoginForm initialValues={initialValues} />);
+  render(<LoginForm initialValues={initialValues} />);
 
   const passwordInput = screen.getByLabelText(/^password$/i);
 
@@ -40,7 +39,7 @@ it("toggles password visibility", async () => {
 it("shows validation errors when submitted empty", async () => {
   const user = userEvent.setup();
   const onSubmit = vi.fn();
-  renderWithProviders(<LoginForm initialValues={initialValues} onSubmit={onSubmit} />);
+  render(<LoginForm initialValues={initialValues} onSubmit={onSubmit} />);
 
   await user.click(screen.getByRole("button", { name: /sign in/i }));
 
@@ -53,7 +52,7 @@ it("submits locally without calling a backend", async () => {
   const user = userEvent.setup();
   const onSubmit = vi.fn();
   const fetchSpy = vi.spyOn(globalThis, "fetch");
-  renderWithProviders(<LoginForm initialValues={initialValues} onSubmit={onSubmit} />);
+  render(<LoginForm initialValues={initialValues} onSubmit={onSubmit} />);
 
   await user.type(screen.getByLabelText(/email/i), "admin@qwapparel.in");
   await user.type(screen.getByLabelText(/^password$/i), "password123");

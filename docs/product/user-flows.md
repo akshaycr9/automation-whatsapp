@@ -1,5 +1,9 @@
 # User Flows
 
+## Login
+
+Admin visits `/login`, submits email and password, and receives an in-memory access token while the backend sets an httpOnly refresh cookie. Protected app routes refresh the session once on startup before deciding whether to render private content or redirect to `/login`. Logout revokes the refresh session, clears in-memory auth state, and returns the admin to `/login`.
+
 ## Template Creation
 
 Admin creates a template locally, future API submits it to Meta, then local status is tracked.

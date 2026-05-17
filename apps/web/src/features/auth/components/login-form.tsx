@@ -46,6 +46,7 @@ export function LoginForm({ isLoading = false, errorMessage, initialValues, onSu
         <Input
           id="login-email"
           autoComplete="email"
+          disabled={isLoading}
           inputMode="email"
           placeholder="you@store.com"
           type="email"
@@ -69,6 +70,7 @@ export function LoginForm({ isLoading = false, errorMessage, initialValues, onSu
             id="login-password"
             autoComplete="current-password"
             className="pr-11"
+            disabled={isLoading}
             placeholder="Enter your password"
             type={isPasswordVisible ? "text" : "password"}
             aria-invalid={errors.password ? "true" : "false"}
@@ -79,6 +81,7 @@ export function LoginForm({ isLoading = false, errorMessage, initialValues, onSu
             aria-label={isPasswordVisible ? "Hide password" : "Show password"}
             aria-pressed={isPasswordVisible}
             className="absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-sm text-text-subtle transition hover:bg-surface-2 hover:text-text"
+            disabled={isLoading}
             type="button"
             onClick={() => setIsPasswordVisible((current) => !current)}
           >
