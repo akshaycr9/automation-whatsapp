@@ -8,6 +8,8 @@ Use Vitest, jsdom, React Testing Library, jest-dom, user-event, and MSW placehol
 
 Use Vitest and Supertest for API integration tests. Mock Shopify, Meta WhatsApp, Redis, push notifications, and any external APIs.
 
+Auth service and route tests use in-memory repositories so they do not require a live database or production secrets. DB-backed auth behavior should be covered later with a dedicated test database once PostgreSQL integration testing is introduced.
+
 ## Shared
 
 Test schemas, constants, and utilities with Vitest.
