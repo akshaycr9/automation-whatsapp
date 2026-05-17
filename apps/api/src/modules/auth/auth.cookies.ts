@@ -11,9 +11,12 @@ const cookieOptions = {
 };
 
 export function setRefreshTokenCookie(res: Response, token: string, expiresAt: Date) {
+  const maxAge = Math.max(expiresAt.getTime() - Date.now(), 0);
+
   res.cookie(REFRESH_COOKIE_NAME, token, {
     ...cookieOptions,
-    expires: expiresAt
+    expires: expiresAt,
+    maxAge
   });
 }
 

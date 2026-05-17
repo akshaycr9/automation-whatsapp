@@ -10,6 +10,8 @@ Use Vitest and Supertest for API integration tests. Mock Shopify, Meta WhatsApp,
 
 Auth service and route tests use in-memory repositories so they do not require a live database or production secrets. DB-backed auth behavior should be covered later with a dedicated test database once PostgreSQL integration testing is introduced.
 
+Auth coverage includes password hashing, login success/failure, failed-attempt lockout, refresh-token hashing and rotation, logout revocation, bearer-token middleware behavior, frontend bootstrap refresh, protected routes, safe login errors, logout navigation, and checks that auth tokens are not written to browser storage.
+
 ## Shared
 
 Test schemas, constants, and utilities with Vitest.

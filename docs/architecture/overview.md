@@ -15,6 +15,10 @@ The MVP auth system is a single-admin, DB-backed model in `apps/api`. Admin cred
 
 Access tokens are short-lived JWTs returned in JSON. Refresh tokens are opaque random values stored in httpOnly cookies; only SHA-256 refresh token hashes are stored in the database. Refresh sessions rotate on every refresh and are revoked on logout. Private API routes should use the auth middleware, which verifies the bearer access token and loads the active admin before attaching `request.auth`.
 
+The frontend owns auth orchestration through `AuthProvider`, protected-route wrappers, and auth feature hooks. It stores the access token in memory only, calls login/refresh/logout with `credentials: "include"`, and sends access tokens to protected APIs with `Authorization: Bearer <token>`. The app shell exposes a sign-out action that calls backend logout, clears auth state and query cache, and returns the admin to `/login`.
+
+Prisma currently defines `AdminUser` and `RefreshSession`. Expired and revoked sessions are indexed so a future cleanup job can delete old refresh-session rows without scanning the table.
+
 When `DATABASE_URL` is available, create the auth migration with:
 
 ```bash

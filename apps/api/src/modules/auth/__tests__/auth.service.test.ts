@@ -71,6 +71,20 @@ it("account locks after configured failed attempts", async () => {
   expect(admin?.lockedUntil).toBeInstanceOf(Date);
 });
 
+it("locked account cannot login", async () => {
+  const { service } = await createService();
+
+  for (let index = 0; index < 5; index += 1) {
+    await expect(service.login({ email: "admin@example.com", password: "wrong" }, sessionContext)).rejects.toBeTruthy();
+  }
+
+  await expect(
+    service.login({ email: "admin@example.com", password: "ValidPass@123" }, sessionContext)
+  ).rejects.toMatchObject({
+    code: "ACCOUNT_LOCKED"
+  });
+});
+
 it("successful login resets failedLoginCount", async () => {
   const { repository, service } = await createService();
   repository.admins.set(
@@ -85,6 +99,34 @@ it("successful login resets failedLoginCount", async () => {
 
   expect(repository.admins.get("admin_test_1")?.failedLoginCount).toBe(0);
   expect(repository.admins.get("admin_test_1")?.lockedUntil).toBeNull();
+});
+
+it("successful login resets failedLoginCount after lock expires", async () => {
+  const { repository, service } = await createService();
+  repository.admins.set(
+    "admin_test_1",
+    buildAdminUser({
+      ...repository.admins.get("admin_test_1"),
+      failedLoginCount: 5,
+      lockedUntil: new Date("2020-01-01T00:00:00.000Z")
+    })
+  );
+
+  await service.login({ email: "admin@example.com", password: "ValidPass@123" }, sessionContext);
+
+  expect(repository.admins.get("admin_test_1")?.failedLoginCount).toBe(0);
+  expect(repository.admins.get("admin_test_1")?.lockedUntil).toBeNull();
+});
+
+it("inactive admin cannot login", async () => {
+  const { repository, service } = await createService();
+  repository.admins.set("admin_test_1", buildAdminUser({ ...repository.admins.get("admin_test_1"), isActive: false }));
+
+  await expect(
+    service.login({ email: "admin@example.com", password: "ValidPass@123" }, sessionContext)
+  ).rejects.toMatchObject({
+    code: "INVALID_CREDENTIALS"
+  });
 });
 
 it("refresh token is stored hashed, not plaintext", async () => {

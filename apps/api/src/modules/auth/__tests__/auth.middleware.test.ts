@@ -1,5 +1,7 @@
 import express from "express";
+import jwt from "jsonwebtoken";
 import request from "supertest";
+import { env } from "../../../config/env.js";
 import { errorHandler } from "../../../middleware/error-handler.js";
 import { buildAdminUser } from "../../../test/factories/user.factory.js";
 import { createAuthMiddleware } from "../auth.middleware.js";
@@ -31,10 +33,24 @@ it("rejects malformed token", async () => {
 
 it("rejects expired token if practical", async () => {
   const { app } = createMiddlewareTestApp();
-  const expiredToken =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbl90ZXN0XzEiLCJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MX0.PsGpO9rVP4ge3kNU3YdQ3lwAYfl-G28QG7FKHEBzxJE";
+  const expiredToken = jwt.sign(
+    { sub: "admin_test_1", email: "admin@example.com", type: "access" },
+    env.JWT_ACCESS_SECRET,
+    { algorithm: "HS256", expiresIn: -1 }
+  );
 
   await request(app).get("/protected").set("Authorization", `Bearer ${expiredToken}`).expect(401);
+});
+
+it("rejects invalid token type", async () => {
+  const { app } = createMiddlewareTestApp();
+  const refreshTypeToken = jwt.sign(
+    { sub: "admin_test_1", email: "admin@example.com", type: "refresh" },
+    env.JWT_ACCESS_SECRET,
+    { algorithm: "HS256", expiresIn: "15m" }
+  );
+
+  await request(app).get("/protected").set("Authorization", `Bearer ${refreshTypeToken}`).expect(401);
 });
 
 it("rejects inactive admin", async () => {
