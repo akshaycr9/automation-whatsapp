@@ -1,4 +1,6 @@
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router";
+import type { ReactNode } from "react";
+import { FeatureErrorBoundary, RouteErrorBoundary } from "@/components/error-boundaries";
 import { AppShell } from "@/components/layout/app-shell";
 import { ProtectedRoute, PublicOnlyRoute } from "@/features/auth/components/protected-route";
 import { LoginPage } from "@/features/auth/pages/login-page";
@@ -11,6 +13,14 @@ import { AutomationConfigurePage } from "@/features/automations/pages/automation
 import { CreateTemplatePage } from "@/features/templates/pages/create-template-page";
 import { TemplateDetailPage } from "@/features/templates/pages/template-detail-page";
 import { TemplatesPage } from "@/features/templates/pages/templates-page";
+
+function withRouteBoundary(element: ReactNode, name: string) {
+  return <RouteErrorBoundary name={name}>{element}</RouteErrorBoundary>;
+}
+
+function withTemplatesBoundary(element: ReactNode, name: string) {
+  return withRouteBoundary(<FeatureErrorBoundary name="Templates">{element}</FeatureErrorBoundary>, name);
+}
 
 const router = createBrowserRouter([
   {
@@ -30,16 +40,19 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
-      { path: "dashboard", element: <DashboardPage /> },
-      { path: "templates", element: <TemplatesPage /> },
-      { path: "templates/create", element: <CreateTemplatePage /> },
+      { path: "dashboard", element: withRouteBoundary(<DashboardPage />, "Dashboard Page") },
+      { path: "templates", element: withTemplatesBoundary(<TemplatesPage />, "Templates List Page") },
+      { path: "templates/create", element: withTemplatesBoundary(<CreateTemplatePage />, "Create Template Page") },
       { path: "templates/new", element: <Navigate to="/templates/create" replace /> },
-      { path: "templates/:id", element: <TemplateDetailPage /> },
-      { path: "automations", element: <AutomationsPage /> },
-      { path: "automations/configure", element: <AutomationConfigurePage /> },
-      { path: "conversations", element: <ConversationsPage /> },
-      { path: "logs", element: <LogsPage /> },
-      { path: "settings", element: <SettingsPage /> }
+      { path: "templates/:id", element: withTemplatesBoundary(<TemplateDetailPage />, "Template Detail Page") },
+      { path: "automations", element: withRouteBoundary(<AutomationsPage />, "Automations Page") },
+      {
+        path: "automations/configure",
+        element: withRouteBoundary(<AutomationConfigurePage />, "Automation Configure Page")
+      },
+      { path: "conversations", element: withRouteBoundary(<ConversationsPage />, "Conversations Page") },
+      { path: "logs", element: withRouteBoundary(<LogsPage />, "Logs Page") },
+      { path: "settings", element: withRouteBoundary(<SettingsPage />, "Settings Page") }
     ]
   }
 ]);
