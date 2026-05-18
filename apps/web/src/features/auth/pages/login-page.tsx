@@ -1,11 +1,13 @@
+import { LoginPageContainer } from "../components/login-page-container";
+
 export function LoginPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-md items-center px-4">
-      <section aria-labelledby="login-title" className="w-full rounded-lg border border-[#d8e0da] bg-white p-6">
-        <h1 id="login-title" className="text-2xl font-semibold">
-          Admin login
-        </h1>
-        <p className="mt-2 text-sm text-[#5b6961]">Authentication UI will be implemented in the auth feature phase.</p>
+    <main className="min-h-screen bg-background px-4 py-8 text-text sm:px-6">
+      <section
+        aria-labelledby="login-title"
+        className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-md items-center"
+      >
+        <LoginPageContainer />
       </section>
     </main>
   );
