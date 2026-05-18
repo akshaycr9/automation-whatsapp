@@ -8,7 +8,7 @@ export function TopbarAction({ pathname }: { pathname: string }) {
     return (
       <button
         type="button"
-        onClick={() => navigate("/templates/new")}
+        onClick={() => navigate("/templates/create")}
         className="inline-flex h-7.5 items-center gap-1.5 rounded-md border border-brand bg-brand px-3 text-xs font-medium text-white shadow-sm transition hover:bg-brand-hover"
       >
         <ShellIcon name="plus" className="size-3.25" />

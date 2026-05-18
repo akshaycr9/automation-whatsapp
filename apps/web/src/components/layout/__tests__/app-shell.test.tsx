@@ -19,6 +19,7 @@ function renderShell(initialPath = "/dashboard") {
         children: [
           { path: "dashboard", element: <div>Dashboard content</div> },
           { path: "templates", element: <div>Templates content</div> },
+          { path: "templates/create", element: <div>Create template content</div> },
           { path: "templates/new", element: <div>Create template content</div> },
           { path: "automations", element: <div>Automations content</div> },
           { path: "automations/configure", element: <div>Automation configure content</div> },
@@ -51,7 +52,7 @@ it("navigates from templates to the create template route", async () => {
 
   await user.click(screen.getByRole("button", { name: /create template/i }));
 
-  expect(router.state.location.pathname).toBe("/templates/new");
+  expect(router.state.location.pathname).toBe("/templates/create");
   expect(screen.getByRole("heading", { name: "Create Template" })).toBeInTheDocument();
   expect(screen.getByText("Create template content")).toBeInTheDocument();
 });
