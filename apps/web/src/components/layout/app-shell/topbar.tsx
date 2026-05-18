@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { useLogoutMutation } from "@/features/auth/hooks/use-logout-mutation";
 import { ShellIcon } from "./shell-icon";
 
 type TopbarProps = {
@@ -68,12 +69,18 @@ function NotificationsButton() {
 }
 
 function AdminAvatar() {
+  const logoutMutation = useLogoutMutation();
+
   return (
-    <div
-      className="grid size-8 place-items-center rounded-full bg-brand-soft text-[13px] font-semibold text-brand-hover"
-      title="Admin"
+    <button
+      aria-label="Sign out"
+      className="grid size-8 place-items-center rounded-full bg-brand-soft text-[13px] font-semibold text-brand-hover transition hover:bg-surface-2"
+      disabled={logoutMutation.isPending}
+      title="Sign out"
+      type="button"
+      onClick={() => logoutMutation.mutate()}
     >
       A
-    </div>
+    </button>
   );
 }

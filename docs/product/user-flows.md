@@ -1,5 +1,25 @@
 # User Flows
 
+## Login
+
+Admin visits `/login`, submits email and password, and receives an in-memory access token while the backend sets an httpOnly refresh cookie. Protected app routes refresh the session once on startup before deciding whether to render private content or redirect to `/login`. Logout revokes the refresh session, clears in-memory auth state, and returns the admin to `/login`.
+
+Manual verification checklist:
+
+1. Set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `JWT_ACCESS_SECRET`, and `DATABASE_URL`.
+2. Run `pnpm db:seed`.
+3. Start the backend with `pnpm dev:api`.
+4. Start the frontend with `pnpm dev:web`.
+5. Open `/login`; invalid credentials should show the generic safe error.
+6. Log in with the seeded admin; the app should redirect to the dashboard.
+7. Open `/templates` while logged out; the app should redirect to `/login`.
+8. Refresh the browser on the dashboard; a valid refresh cookie should keep the admin logged in.
+9. Click the topbar sign-out avatar; the app should return to `/login`.
+10. Confirm `localStorage` and `sessionStorage` contain no auth tokens.
+11. Confirm the `qw_refresh_token` cookie is httpOnly and scoped to `/api/auth`.
+12. Confirm `/api/auth/me` returns `401` without a bearer token or with an invalid token.
+13. Confirm repeated invalid logins trigger lockout or rate-limit behavior.
+
 ## Template Creation
 
 Admin creates a template locally, future API submits it to Meta, then local status is tracked.

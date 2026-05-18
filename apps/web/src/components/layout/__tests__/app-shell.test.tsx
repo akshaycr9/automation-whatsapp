@@ -1,12 +1,18 @@
+import { http, HttpResponse } from "msw";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { AppShell } from "../app-shell";
 import { renderWithProviders } from "@/test/test-utils";
+import { server } from "@/test/mocks/server";
 
 function renderShell(initialPath = "/dashboard") {
   const router = createMemoryRouter(
     [
+      {
+        path: "/login",
+        element: <div>Login content</div>
+      },
       {
         path: "/",
         element: <AppShell />,
@@ -59,4 +65,22 @@ it("returns from a secondary route when the shell back button is used", async ()
   expect(router.state.location.pathname).toBe("/automations");
   expect(screen.getByRole("heading", { name: "Automations" })).toBeInTheDocument();
   expect(screen.getByText("Automations content")).toBeInTheDocument();
+});
+
+it("logs out from the topbar avatar action", async () => {
+  const user = userEvent.setup();
+  const router = renderShell();
+  let logoutCalled = false;
+  server.use(
+    http.post("http://localhost:4000/api/auth/logout", () => {
+      logoutCalled = true;
+      return HttpResponse.json({ data: { success: true } });
+    })
+  );
+
+  await user.click(screen.getByRole("button", { name: /sign out/i }));
+
+  expect(logoutCalled).toBe(true);
+  expect(router.state.location.pathname).toBe("/login");
+  expect(screen.getByText("Login content")).toBeInTheDocument();
 });
