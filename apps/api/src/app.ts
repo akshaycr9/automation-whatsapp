@@ -8,11 +8,27 @@ import { notFound } from "./middleware/not-found.js";
 import { requestLogger } from "./middleware/request-logger.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 
+function isAllowedDevOrigin(origin: string) {
+  return /^http:\/\/(localhost|127\.0\.0\.1|\d{1,3}(?:\.\d{1,3}){3}):5173$/.test(origin);
+}
+
 export function createApp() {
   const app = express();
 
   app.use(helmet());
-  app.use(cors({ credentials: true, origin: env.WEB_APP_URL }));
+  app.use(
+    cors({
+      credentials: true,
+      origin(origin, callback) {
+        if (!origin || origin === env.WEB_APP_URL || (env.NODE_ENV === "development" && isAllowedDevOrigin(origin))) {
+          callback(null, true);
+          return;
+        }
+
+        callback(new Error("Not allowed by CORS"));
+      }
+    })
+  );
   app.use(cookieParser());
   app.use(express.json({ limit: "1mb" }));
   app.use(requestLogger);

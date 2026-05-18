@@ -19,7 +19,7 @@ type ApiErrorPayload = {
   };
 };
 
-const defaultBaseUrl = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
+const defaultBaseUrl = getDefaultBaseUrl();
 
 export class ApiError extends Error {
   constructor(
@@ -112,6 +112,26 @@ async function readJson<T>(response: Response): Promise<T> {
 
 function trimTrailingSlash(value: string) {
   return value.endsWith("/") ? value.slice(0, -1) : value;
+}
+
+function getDefaultBaseUrl() {
+  const configuredBaseUrl = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
+
+  if (typeof window === "undefined") {
+    return configuredBaseUrl;
+  }
+
+  const appHostname = window.location.hostname;
+  const apiUrl = new URL(configuredBaseUrl);
+  const apiUsesLocalhost = apiUrl.hostname === "localhost" || apiUrl.hostname === "127.0.0.1";
+  const appUsesLocalhost = appHostname === "localhost" || appHostname === "127.0.0.1";
+
+  if (!apiUsesLocalhost || appUsesLocalhost) {
+    return configuredBaseUrl;
+  }
+
+  apiUrl.hostname = appHostname;
+  return apiUrl.toString();
 }
 
 export const apiClient = createApiClient();
