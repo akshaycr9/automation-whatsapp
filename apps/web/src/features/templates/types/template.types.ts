@@ -53,6 +53,7 @@ export type Template = {
   languageCode: string;
   status: TemplateStatus;
   qualityRating?: TemplateQualityRating;
+  rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
   components?: TemplateComponent[];

@@ -11,7 +11,7 @@ export const mockTemplates: Template[] = [
     status: "APPROVED",
     qualityRating: "HIGH",
     createdAt: "2026-05-01T09:30:00.000Z",
-    updatedAt: "2026-05-02T10:15:00.000Z"
+    updatedAt: "2026-05-14T10:15:00.000Z"
   },
   {
     id: "tmpl_order_shipped_v1",
@@ -23,7 +23,7 @@ export const mockTemplates: Template[] = [
     status: "PENDING",
     qualityRating: "UNKNOWN",
     createdAt: "2026-05-08T11:00:00.000Z",
-    updatedAt: "2026-05-08T11:00:00.000Z"
+    updatedAt: "2026-05-15T11:00:00.000Z"
   },
   {
     id: "tmpl_new_collection_offer_v1",
@@ -34,6 +34,7 @@ export const mockTemplates: Template[] = [
     languageCode: "en",
     status: "REJECTED",
     qualityRating: "LOW",
+    rejectionReason: "Promotional claim needs clearer opt-out language.",
     createdAt: "2026-05-10T08:45:00.000Z",
     updatedAt: "2026-05-10T14:20:00.000Z"
   },
@@ -47,5 +48,29 @@ export const mockTemplates: Template[] = [
     status: "DRAFT",
     createdAt: "2026-05-12T13:10:00.000Z",
     updatedAt: "2026-05-12T13:10:00.000Z"
+  },
+  {
+    id: "tmpl_abandoned_cart_reminder_v1",
+    name: "abandoned_cart_reminder_v1",
+    displayName: "Abandoned cart reminder",
+    category: "MARKETING",
+    type: "TEXT",
+    languageCode: "en",
+    status: "PAUSED",
+    qualityRating: "MEDIUM",
+    createdAt: "2026-05-04T16:25:00.000Z",
+    updatedAt: "2026-05-11T09:35:00.000Z"
+  },
+  {
+    id: "tmpl_delivery_update_v1",
+    name: "delivery_update_v1",
+    displayName: "Delivery update",
+    category: "UTILITY",
+    type: "TEXT",
+    languageCode: "en",
+    status: "APPROVED",
+    qualityRating: "HIGH",
+    createdAt: "2026-04-28T07:20:00.000Z",
+    updatedAt: "2026-05-16T12:40:00.000Z"
   }
 ];
