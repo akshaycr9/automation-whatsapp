@@ -7,10 +7,11 @@ import type {
   CreateTemplateFormValues,
   TemplateButton,
   TemplateCategory,
-  TemplateHeaderFormat
+  TemplateHeaderFormat,
+  TemplateType
 } from "../types/template.types";
 import { extractBodyTemplateVariables } from "../utils/templateVariables";
-import { validateCreateTemplateForm } from "../utils/templateValidation";
+import { validateTemplateByType } from "../utils/templateValidation";
 
 type TemplateFormTouchedFields = Partial<
   Record<
@@ -48,7 +49,7 @@ export function useCreateTemplatePageState() {
   });
 
   const detectedVariables = useMemo(() => extractBodyTemplateVariables(formValues.bodyText), [formValues.bodyText]);
-  const validationResult = useMemo(() => validateCreateTemplateForm(formValues), [formValues]);
+  const validationResult = useMemo(() => validateTemplateByType(formValues), [formValues]);
   const normalizedSubmitPayload = useMemo(
     () => (validationResult.isValid ? mapTemplateFormToApiPayload(formValues, detectedVariables) : null),
     [detectedVariables, formValues, validationResult.isValid]
@@ -85,6 +86,7 @@ export function useCreateTemplatePageState() {
   const updateDisplayName = (displayName: string) => updateForm({ displayName });
   const updateCategory = (category: TemplateCategory | "") => updateForm({ category }, "category");
   const updateLanguageCode = (languageCode: string) => updateForm({ languageCode }, "languageCode");
+  const updateType = (type: TemplateType) => updateForm({ type });
   const updateHeaderFormat = (headerFormat: TemplateHeaderFormat) => updateForm({ headerFormat }, "headerText");
   const updateHeaderText = (headerText: string) => updateForm({ headerText }, "headerText");
   const updateBodyText = (bodyText: string) => updateForm({ bodyText }, "bodyText");
@@ -141,6 +143,7 @@ export function useCreateTemplatePageState() {
     updateLanguageCode,
     updateName,
     updateSampleValue,
+    updateType,
     visibleErrors,
     validationResult
   };

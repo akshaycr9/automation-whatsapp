@@ -1,12 +1,10 @@
 import { SectionErrorBoundary } from "@/components/error-boundaries";
 import { Button } from "@/components/ui/button";
-import { ButtonEditor } from "../components/TemplateBuilder/ButtonEditor";
+import { TemplateFormRenderer } from "../components/TemplateBuilder/TemplateFormRenderer";
 import { TemplateBasicInfoSection } from "../components/TemplateBuilder/TemplateBasicInfoSection";
 import { TemplateBuilderShell } from "../components/TemplateBuilder/TemplateBuilderShell";
-import { TemplateMessageSection } from "../components/TemplateBuilder/TemplateMessageSection";
 import { ValidationChecklist } from "../components/TemplateBuilder/ValidationChecklist";
-import { VariableMappingPanel } from "../components/TemplateBuilder/VariableMappingPanel";
-import { TemplatePreview } from "../components/TemplatePreview/TemplatePreview";
+import { TemplatePreviewRenderer } from "../components/TemplatePreview/TemplatePreviewRenderer";
 import { useCreateTemplatePageState } from "../hooks/useCreateTemplatePageState";
 
 export function CreateTemplatePage() {
@@ -52,29 +50,19 @@ export function CreateTemplatePage() {
               onDisplayNameChange={pageState.updateDisplayName}
               onCategoryChange={pageState.updateCategory}
               onLanguageCodeChange={pageState.updateLanguageCode}
+              onTypeChange={pageState.updateType}
               errors={visibleErrors}
             />
-            <TemplateMessageSection
-              headerFormat={formValues.headerFormat}
-              headerText={formValues.headerText ?? ""}
-              bodyText={formValues.bodyText}
-              footerText={formValues.footerText ?? ""}
+            <TemplateFormRenderer
+              formValues={formValues}
+              detectedVariables={detectedVariables}
+              visibleErrors={visibleErrors}
               onHeaderFormatChange={pageState.updateHeaderFormat}
               onHeaderTextChange={pageState.updateHeaderText}
               onBodyTextChange={pageState.updateBodyText}
               onFooterTextChange={pageState.updateFooterText}
-              errors={visibleErrors}
-            />
-            <ButtonEditor
-              buttons={formValues.buttons}
               onButtonsChange={pageState.updateButtons}
-              errors={visibleErrors}
-            />
-            <VariableMappingPanel
-              variables={detectedVariables}
-              sampleValues={formValues.variableSamples}
               onSampleValueChange={updateSampleValue}
-              errors={visibleErrors}
             />
             <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:items-center sm:justify-end">
               <Button className="w-full sm:w-auto" type="button" variant="ghost" onClick={pageState.cancel}>
@@ -97,14 +85,7 @@ export function CreateTemplatePage() {
 
         <div className="space-y-4 xl:sticky xl:top-20 xl:self-start">
           <SectionErrorBoundary name="Template Preview">
-            <TemplatePreview
-              headerFormat={formValues.headerFormat}
-              headerText={formValues.headerText ?? ""}
-              bodyText={formValues.bodyText}
-              footerText={formValues.footerText ?? ""}
-              buttons={formValues.buttons}
-              sampleValues={formValues.variableSamples}
-            />
+            <TemplatePreviewRenderer formValues={formValues} />
           </SectionErrorBoundary>
           <SectionErrorBoundary name="Template Validation">
             <ValidationChecklist items={checklist} />

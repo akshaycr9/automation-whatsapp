@@ -13,6 +13,7 @@ import {
 import type {
   CreateTemplateFormValues,
   TemplateButton,
+  TemplateType,
   TemplateValidationChecklistItem,
   TemplateValidationResult,
   TemplateVariable
@@ -52,7 +53,19 @@ export function isValidLanguageCode(languageCode: string) {
   return TEMPLATE_LANGUAGE_OPTIONS.some((option) => option.code === languageCode.trim());
 }
 
+export function validateTemplateByType(values: CreateTemplateFormValues): TemplateValidationResult {
+  if (values.type === "TEXT") {
+    return validateTextTemplateForm(values);
+  }
+
+  return unsupportedTemplateTypeValidation(values.type);
+}
+
 export function validateCreateTemplateForm(values: CreateTemplateFormValues): TemplateValidationResult {
+  return validateTemplateByType(values);
+}
+
+export function validateTextTemplateForm(values: CreateTemplateFormValues): TemplateValidationResult {
   const errors: Record<string, string[]> = {};
   const warnings: Record<string, string[]> = {};
   const bodyVariables = extractBodyTemplateVariables(values.bodyText);
@@ -86,6 +99,24 @@ export function validateCreateTemplateForm(values: CreateTemplateFormValues): Te
     errors,
     warnings,
     checklist
+  };
+}
+
+function unsupportedTemplateTypeValidation(type: TemplateType): TemplateValidationResult {
+  return {
+    isValid: false,
+    errors: {
+      type: [`${type} templates are not supported in this phase.`]
+    },
+    warnings: {},
+    checklist: [
+      {
+        id: "template-type",
+        label: "Template type supported",
+        status: "invalid",
+        message: `${type} templates are coming soon.`
+      }
+    ]
   };
 }
 

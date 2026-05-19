@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import { Input } from "@/components/ui/input";
+import { templateTypeRegistry } from "../../config/templateTypeRegistry";
 import { TEMPLATE_CATEGORIES, TEMPLATE_LANGUAGE_OPTIONS } from "../../constants/template.constants";
 import type { TemplateCategory, TemplateType } from "../../types/template.types";
-import { formatTemplateCategory, formatTemplateType } from "../../utils/templateFormatters";
+import { formatTemplateCategory } from "../../utils/templateFormatters";
 
 type TemplateBasicInfoSectionProps = {
   name: string;
@@ -14,6 +15,7 @@ type TemplateBasicInfoSectionProps = {
   onDisplayNameChange: (value: string) => void;
   onCategoryChange: (value: TemplateCategory | "") => void;
   onLanguageCodeChange: (value: string) => void;
+  onTypeChange: (value: TemplateType) => void;
   errors?: Partial<Record<"name" | "category" | "languageCode", string[]>>;
 };
 
@@ -27,6 +29,7 @@ export function TemplateBasicInfoSection({
   onDisplayNameChange,
   onCategoryChange,
   onLanguageCodeChange,
+  onTypeChange,
   errors = {}
 }: TemplateBasicInfoSectionProps) {
   return (
@@ -90,7 +93,19 @@ export function TemplateBasicInfoSection({
           </select>
         </Field>
         <Field label="Template type" htmlFor="template-type" help="Only text templates are available in this phase.">
-          <Input id="template-type" disabled value={formatTemplateType(type)} readOnly />
+          <select
+            id="template-type"
+            className="block min-h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+            value={type}
+            onChange={(event) => onTypeChange(event.target.value as TemplateType)}
+          >
+            {Object.values(templateTypeRegistry).map((option) => (
+              <option key={option.type} value={option.type} disabled={!option.isEnabled}>
+                {option.label}
+                {option.isEnabled ? "" : " · Coming soon"}
+              </option>
+            ))}
+          </select>
         </Field>
       </div>
     </section>
