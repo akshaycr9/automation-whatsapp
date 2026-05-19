@@ -36,6 +36,6 @@ export class TemplateNotFoundError extends TemplateDomainError {
 
 export class TemplateUnsupportedTypeError extends TemplateDomainError {
   constructor() {
-    super(422, "Template type is not supported yet.", TEMPLATE_ERROR_CODES.UNSUPPORTED_TYPE);
+    super(400, "Template type is not supported yet.", TEMPLATE_ERROR_CODES.UNSUPPORTED_TYPE);
   }
 }
