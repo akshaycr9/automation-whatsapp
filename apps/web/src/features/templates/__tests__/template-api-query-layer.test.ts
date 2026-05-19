@@ -1,6 +1,7 @@
+import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
+import { server } from "@/test/mocks/server";
 import { templateApi } from "../api/templateApi";
-import { mockTemplates } from "../data/mockTemplates";
 import { templateKeys } from "../hooks/templateKeys";
 
 describe("template API and query keys", () => {
@@ -14,22 +15,93 @@ describe("template API and query keys", () => {
     expect(templateKeys.detail("tmpl_1")).toEqual(["templates", "detail", "tmpl_1"]);
   });
 
-  it("returns mock templates in an API response envelope", async () => {
-    const response = await templateApi.getTemplates();
+  it("builds GET query params and unwraps backend list responses", async () => {
+    server.use(
+      http.get("http://localhost:4000/api/templates", ({ request }) => {
+        const url = new URL(request.url);
+        expect(url.searchParams.get("status")).toBe("APPROVED");
+        expect(url.searchParams.get("category")).toBe("UTILITY");
+        expect(url.searchParams.get("search")).toBe("order");
+        expect(url.searchParams.has("languageCode")).toBe(false);
 
-    expect(response.data).toHaveLength(mockTemplates.length);
-    expect(response.pagination.total).toBe(mockTemplates.length);
+        return HttpResponse.json({
+          data: [
+            {
+              id: "tmpl_123",
+              name: "order_confirmation_v1",
+              displayName: "Order Confirmation",
+              category: "UTILITY",
+              type: "TEXT",
+              languageCode: "en",
+              status: "APPROVED",
+              qualityRating: "GREEN",
+              rejectionReason: null,
+              createdAt: "2026-05-19T10:00:00.000Z",
+              updatedAt: "2026-05-19T10:00:00.000Z"
+            }
+          ],
+          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 }
+        });
+      })
+    );
+
+    const response = await templateApi.getTemplates({
+      search: "order",
+      status: "APPROVED",
+      category: "UTILITY",
+      languageCode: "ALL"
+    });
+
+    expect(response.data[0]?.qualityRating).toBe("GREEN");
+    expect(response.pagination.totalPages).toBe(1);
   });
 
-  it("filters mock templates in the API layer", async () => {
-    const response = await templateApi.getTemplates({ status: "APPROVED" });
+  it("posts create payloads to the backend", async () => {
+    server.use(
+      http.post("http://localhost:4000/api/templates", async ({ request }) => {
+        expect(await request.json()).toEqual({
+          name: "order_confirmation_v1",
+          displayName: "Order Confirmation",
+          category: "UTILITY",
+          type: "TEXT",
+          languageCode: "en",
+          components: {
+            body: { text: "Hi {{1}}" },
+            buttons: []
+          },
+          variables: [{ componentType: "BODY", position: 1, placeholder: "{{1}}", sampleValue: "Akshay" }]
+        });
 
-    expect(response.data.every((template) => template.status === "APPROVED")).toBe(true);
-  });
+        return HttpResponse.json({
+          data: {
+            id: "tmpl_123",
+            name: "order_confirmation_v1",
+            displayName: "Order Confirmation",
+            category: "UTILITY",
+            type: "TEXT",
+            languageCode: "en",
+            status: "PENDING",
+            createdAt: "2026-05-19T10:00:00.000Z",
+            updatedAt: "2026-05-19T10:00:00.000Z"
+          },
+          message: "Template created successfully"
+        });
+      })
+    );
 
-  it("returns a single template by id", async () => {
-    const response = await templateApi.getTemplateById("tmpl_order_confirmation_v1");
+    const response = await templateApi.createTemplate({
+      name: "order_confirmation_v1",
+      displayName: "Order Confirmation",
+      category: "UTILITY",
+      type: "TEXT",
+      languageCode: "en",
+      components: {
+        body: { text: "Hi {{1}}" },
+        buttons: []
+      },
+      variables: [{ componentType: "BODY", position: 1, placeholder: "{{1}}", sampleValue: "Akshay" }]
+    });
 
-    expect(response.data.name).toBe("order_confirmation_v1");
+    expect(response.data.status).toBe("PENDING");
   });
 });

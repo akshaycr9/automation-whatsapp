@@ -1,5 +1,15 @@
-import { mockTemplates } from "../data/mockTemplates";
-import type { CreateTemplatePayload, Template, TemplateListFilters } from "../types/template.types";
+import { apiClient } from "@/lib/api-client";
+import type {
+  CreateTemplatePayload,
+  Template,
+  TemplateButton,
+  TemplateComponent,
+  TemplateListFilters
+} from "../types/template.types";
+
+export type TemplateApiOptions = {
+  accessToken?: string | null;
+};
 
 export type TemplateListResponse = {
   data: Template[];
@@ -7,6 +17,7 @@ export type TemplateListResponse = {
     page: number;
     limit: number;
     total: number;
+    totalPages: number;
   };
 };
 
@@ -20,80 +31,192 @@ export type CreateTemplateResponse = {
 };
 
 export type SyncTemplatesResponse = {
-  data: Template[];
+  data: {
+    syncedCount: number;
+    createdCount: number;
+    updatedCount: number;
+    failedCount: number;
+  };
   message: string;
-  syncedAt: string;
 };
 
-function applyTemplateFilters(templates: Template[], filters: TemplateListFilters = {}) {
-  const search = filters.search?.trim().toLowerCase();
+export type DeleteTemplateResponse = {
+  data: {
+    id: string;
+    status: "DELETED";
+  };
+  message: string;
+};
 
-  return templates.filter((template) => {
-    const matchesSearch =
-      !search || template.name.toLowerCase().includes(search) || template.displayName.toLowerCase().includes(search);
-    const matchesStatus = !filters.status || filters.status === "ALL" || template.status === filters.status;
-    const matchesCategory = !filters.category || filters.category === "ALL" || template.category === filters.category;
-    const matchesLanguage =
-      !filters.languageCode || filters.languageCode === "ALL" || template.languageCode === filters.languageCode;
-    const matchesType = !filters.type || filters.type === "ALL" || template.type === filters.type;
-
-    return matchesSearch && matchesStatus && matchesCategory && matchesLanguage && matchesType;
-  });
-}
+type BackendTemplate = Omit<Template, "components" | "qualityRating"> & {
+  metaTemplateId?: string | null;
+  qualityRating?: Template["qualityRating"] | null;
+  rejectionReason?: string | null;
+  lastSyncedAt?: string | null;
+  components?:
+    | {
+        header?: { format: "TEXT"; text: string };
+        body: { text: string };
+        footer?: { text: string };
+        buttons: Array<{
+          type: TemplateButton["type"];
+          text: string;
+          url?: string;
+          phoneNumber?: string;
+          payload?: string;
+          flowId?: string;
+        }>;
+      }
+    | TemplateComponent[];
+};
 
 export const templateApi = {
-  async getTemplates(filters: TemplateListFilters = {}): Promise<TemplateListResponse> {
-    const filteredTemplates = applyTemplateFilters(mockTemplates, filters);
+  async getTemplates(
+    filters: TemplateListFilters = {},
+    options: TemplateApiOptions = {}
+  ): Promise<TemplateListResponse> {
+    const query = buildTemplateListQuery(filters);
+    const response = await apiClient.get<BackendTemplate[]>(`/api/templates${query}`, requestOptions(options));
+    const pagination = (response as unknown as { pagination?: TemplateListResponse["pagination"] }).pagination;
 
-    return Promise.resolve({
-      data: filteredTemplates,
-      pagination: {
-        page: 1,
-        limit: filteredTemplates.length,
-        total: filteredTemplates.length
-      }
-    });
-  },
-
-  async getTemplateById(id: string): Promise<TemplateDetailResponse> {
-    const template = mockTemplates.find((template) => template.id === id);
-
-    if (!template) {
-      throw new Error("Template not found.");
-    }
-
-    return Promise.resolve({ data: template });
-  },
-
-  async createTemplate(payload: CreateTemplatePayload): Promise<CreateTemplateResponse> {
-    if (!payload.category) {
-      throw new Error("Template category is required.");
-    }
-
-    const now = new Date().toISOString();
-    const template: Template = {
-      id: `tmpl_${payload.name}`,
-      name: payload.name,
-      displayName: payload.displayName,
-      category: payload.category,
-      type: payload.type,
-      languageCode: payload.languageCode,
-      status: "DRAFT",
-      createdAt: now,
-      updatedAt: now
+    return {
+      data: response.data.map(mapBackendTemplateToView),
+      pagination: pagination ?? { page: 1, limit: response.data.length, total: response.data.length, totalPages: 1 }
     };
-
-    return Promise.resolve({
-      data: template,
-      message: "Template created successfully"
-    });
   },
 
-  async syncTemplates(): Promise<SyncTemplatesResponse> {
-    return Promise.resolve({
-      data: mockTemplates,
-      message: "Templates synced successfully",
-      syncedAt: new Date().toISOString()
-    });
+  async getTemplateById(id: string, options: TemplateApiOptions = {}): Promise<TemplateDetailResponse> {
+    const response = await apiClient.get<BackendTemplate>(
+      `/api/templates/${encodeURIComponent(id)}`,
+      requestOptions(options)
+    );
+
+    return { data: mapBackendTemplateToView(response.data) };
+  },
+
+  async createTemplate(
+    payload: CreateTemplatePayload,
+    options: TemplateApiOptions = {}
+  ): Promise<CreateTemplateResponse> {
+    const response = await apiClient.post<BackendTemplate>("/api/templates", payload, requestOptions(options));
+    const message = (response as unknown as { message?: string }).message;
+
+    return {
+      data: mapBackendTemplateToView(response.data),
+      message: message ?? "Template created successfully"
+    };
+  },
+
+  async syncTemplates(options: TemplateApiOptions = {}): Promise<SyncTemplatesResponse> {
+    const response = await apiClient.post<SyncTemplatesResponse["data"]>(
+      "/api/templates/sync",
+      {},
+      requestOptions(options)
+    );
+    return {
+      data: response.data,
+      message: (response as unknown as { message?: string }).message ?? "Templates synced successfully"
+    };
+  },
+
+  async deleteTemplate(id: string, options: TemplateApiOptions = {}): Promise<DeleteTemplateResponse> {
+    const response = await apiClient.delete<DeleteTemplateResponse["data"]>(
+      `/api/templates/${encodeURIComponent(id)}`,
+      requestOptions(options)
+    );
+    return {
+      data: response.data,
+      message: (response as unknown as { message?: string }).message ?? "Template deleted successfully"
+    };
   }
 };
+
+function requestOptions(options: TemplateApiOptions) {
+  return {
+    ...(options.accessToken !== undefined ? { accessToken: options.accessToken } : {}),
+    credentials: "include" as const
+  };
+}
+
+function buildTemplateListQuery(filters: TemplateListFilters) {
+  const params = new URLSearchParams();
+
+  appendFilter(params, "search", filters.search?.trim());
+  appendFilter(params, "status", filters.status);
+  appendFilter(params, "category", filters.category);
+  appendFilter(params, "languageCode", filters.languageCode);
+  appendFilter(params, "type", filters.type);
+
+  return params.size > 0 ? `?${params.toString()}` : "";
+}
+
+function appendFilter(params: URLSearchParams, key: string, value: string | undefined) {
+  if (!value || value === "ALL") return;
+  params.set(key, value);
+}
+
+function mapBackendTemplateToView(template: BackendTemplate): Template {
+  const components = mapBackendComponents(template.components);
+
+  return {
+    id: template.id,
+    name: template.name,
+    displayName: template.displayName,
+    category: template.category,
+    type: template.type,
+    languageCode: template.languageCode,
+    status: template.status,
+    ...(template.qualityRating ? { qualityRating: template.qualityRating } : {}),
+    ...(template.rejectionReason ? { rejectionReason: template.rejectionReason } : {}),
+    createdAt: template.createdAt,
+    updatedAt: template.updatedAt,
+    ...(components ? { components } : {})
+  };
+}
+
+function mapBackendComponents(components: BackendTemplate["components"]): TemplateComponent[] | undefined {
+  if (!components) return undefined;
+  if (Array.isArray(components)) return components;
+
+  const mappedComponents: TemplateComponent[] = [];
+
+  if (components.header) {
+    mappedComponents.push({
+      id: "header",
+      type: "HEADER",
+      format: components.header.format,
+      text: components.header.text
+    });
+  }
+
+  mappedComponents.push({
+    id: "body",
+    type: "BODY",
+    text: components.body.text
+  });
+
+  if (components.footer) {
+    mappedComponents.push({
+      id: "footer",
+      type: "FOOTER",
+      text: components.footer.text
+    });
+  }
+
+  if (components.buttons.length > 0) {
+    mappedComponents.push({
+      id: "buttons",
+      type: "BUTTONS",
+      buttons: components.buttons.map((button, index) => ({
+        id: `button_${index}`,
+        type: button.type,
+        text: button.text,
+        ...((button.url ?? button.phoneNumber ?? button.payload ?? button.flowId)
+          ? { value: button.url ?? button.phoneNumber ?? button.payload ?? button.flowId }
+          : {})
+      }))
+    });
+  }
+
+  return mappedComponents;
+}

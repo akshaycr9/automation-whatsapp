@@ -26,9 +26,7 @@ export function CreateTemplatePage() {
         <h1 id="create-template-title" className="text-2xl font-semibold tracking-tight text-text">
           Create Template
         </h1>
-        <p className="mt-1 text-sm text-text-muted">
-          Build a text WhatsApp template. Meta submission remains mocked in this phase.
-        </p>
+        <p className="mt-1 text-sm text-text-muted">Build and submit a text WhatsApp template for Meta review.</p>
       </div>
 
       {feedback ? (

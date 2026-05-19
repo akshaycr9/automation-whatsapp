@@ -19,7 +19,7 @@ export type TemplateHeaderFormat = "NONE" | "TEXT" | "IMAGE" | "VIDEO" | "DOCUME
 
 export type TemplateButtonType = "QUICK_REPLY" | "URL" | "PHONE_NUMBER" | "COPY_CODE" | "FLOW";
 
-export type TemplateQualityRating = "HIGH" | "MEDIUM" | "LOW" | "UNKNOWN";
+export type TemplateQualityRating = "GREEN" | "YELLOW" | "RED" | "UNKNOWN";
 
 export type TemplateVariable = {
   key: string;
@@ -128,5 +128,6 @@ export type CreateTemplatePayload = {
     position: number;
     placeholder: string;
     sampleValue: string;
+    sourceKey?: string | null;
   }>;
 };
