@@ -15,6 +15,9 @@ const envSchema = z.object({
   BCRYPT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().optional(),
+  META_GRAPH_API_VERSION: z.string().default("v21.0"),
+  META_WABA_ID: z.string().optional(),
+  META_ACCESS_TOKEN: z.string().optional(),
   COOKIE_SECURE: z
     .enum(["true", "false"])
     .optional()

@@ -88,18 +88,19 @@ it("creates a local template and returns the Phase 12 create response", async ()
   });
 });
 
-it("returns the sync placeholder without calling Meta", async () => {
-  const getSyncPlaceholder = vi.fn().mockReturnValue({
+it("returns the sync result from the template service", async () => {
+  const syncTemplates = vi.fn().mockResolvedValue({
     data: { syncedCount: 0, createdCount: 0, updatedCount: 0, failedCount: 0 },
-    message: "Template sync is not connected to Meta yet"
+    message: "Templates synced successfully"
   });
-  const controller = new TemplatesController({ getSyncPlaceholder } as unknown as TemplateDomainService);
+  const controller = new TemplatesController({ syncTemplates } as unknown as TemplateDomainService);
   const res = createResponse();
 
-  await controller.sync({} as Request, res);
+  await controller.sync({ auth } as unknown as Request, res);
 
+  expect(syncTemplates).toHaveBeenCalledWith({ adminUserId: "admin_123" });
   expect(res.json).toHaveBeenCalledWith({
     data: { syncedCount: 0, createdCount: 0, updatedCount: 0, failedCount: 0 },
-    message: "Template sync is not connected to Meta yet"
+    message: "Templates synced successfully"
   });
 });
