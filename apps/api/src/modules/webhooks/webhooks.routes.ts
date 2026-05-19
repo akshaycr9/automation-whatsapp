@@ -5,7 +5,8 @@ import { WebhooksController } from "./webhooks.controller.js";
 export function createWebhooksRoutes(controller = new WebhooksController()) {
   const router = Router();
 
-  router.post("/meta/template-status", asyncHandler(controller.metaTemplateStatus));
+  router.get("/meta", asyncHandler(controller.metaChallenge));
+  router.post("/meta", asyncHandler(controller.meta));
 
   return router;
 }

@@ -44,11 +44,16 @@ The sync stores a provider payload record with action `SYNC`, creates a summary 
 
 ## Webhook endpoint
 
-The webhook endpoint is:
+The Meta-compatible webhook endpoints are:
 
-`POST /api/webhooks/meta/template-status`
+- `GET /webhooks/meta`
+- `POST /webhooks/meta`
 
-It does not use normal admin authentication. It verifies the Meta webhook signature, extracts template status events from `entry[].changes[]`, and identifies templates by `metaTemplateId` where available. If no provider id is present, it falls back to `name + languageCode + wabaId` when those fields are present.
+`GET /webhooks/meta` handles Meta's callback verification challenge using `META_VERIFY_TOKEN`.
+
+`POST /webhooks/meta` does not use normal admin authentication. It verifies the Meta webhook signature, dispatches each `entry[].changes[].field` to a field-specific handler, and acknowledges unhandled fields with `200` so Meta does not retry unrelated future events.
+
+For `message_template_status_update`, the handler identifies templates by `metaTemplateId` where available. If no provider id is present, it falls back to `name + languageCode + wabaId` when those fields are present.
 
 For matched templates, it updates status, quality rating, rejection reason, and `lastSyncedAt`. It stores the raw event fragment as provider payload action `WEBHOOK`, creates `WEBHOOK_RECEIVED`, and creates a lifecycle event when the status changed.
 
@@ -62,6 +67,7 @@ Raw body capture is wired through the global JSON parser `verify` callback in `a
 
 Configuration:
 
+- `META_VERIFY_TOKEN` is required for Meta callback URL verification.
 - `META_APP_SECRET` is required for verification.
 - `META_WEBHOOK_VERIFY_DISABLED=true` can bypass verification in non-production only.
 - Production fails closed if the app secret or valid signature is missing.
@@ -121,6 +127,6 @@ Manual webhook testing can use `META_WEBHOOK_VERIFY_DISABLED=true` only in local
 ## Phase 16 readiness checklist
 
 - Decide whether a dedicated webhook event table is needed for delivery-level dedupe.
-- Add webhook verification-token GET flow if Meta subscription setup is automated through this app.
+- Add more field handlers, such as `message_template_quality_update`, only when product scope needs them.
 - Add admin-visible audit/log views only after a product plan is approved.
 - Keep realtime refresh/socket work out of scope until the planned conversations or operations phases.

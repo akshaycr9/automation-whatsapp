@@ -10,6 +10,7 @@ export function createTemplatesRoutes(controller = new TemplatesController(), au
   router.get("/", asyncHandler(controller.list));
   router.post("/", asyncHandler(controller.create));
   router.post("/sync", asyncHandler(controller.sync));
+  router.post("/:id/sync", asyncHandler(controller.syncOne));
   router.post("/:id/retry-submission", asyncHandler(controller.retrySubmission));
   router.get("/:id", asyncHandler(controller.detail));
   router.delete("/:id", asyncHandler(controller.delete));

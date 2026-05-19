@@ -165,6 +165,14 @@ export function mapMetaListResponse(response: MetaListTemplatesResponse, statusC
   };
 }
 
+export function mapMetaGetResponse(response: MetaTemplateResponse, statusCode: number) {
+  return {
+    template: mapMetaTemplateSummary(response),
+    raw: response,
+    statusCode
+  };
+}
+
 export function mapMetaTemplateSummary(template: MetaTemplateResponse): ProviderTemplateSummary {
   return {
     providerTemplateId: template.id ?? null,

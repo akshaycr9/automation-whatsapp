@@ -8,6 +8,7 @@ import { TemplateListToolbar } from "../components/TemplateList/TemplateListTool
 import { TemplateTable } from "../components/TemplateList/TemplateTable";
 import { useDeleteTemplate } from "../hooks/useDeleteTemplate";
 import { useRetryTemplateSubmission } from "../hooks/useRetryTemplateSubmission";
+import { useSyncTemplate } from "../hooks/useSyncTemplate";
 import { useSyncTemplates } from "../hooks/useSyncTemplates";
 import { useTemplates } from "../hooks/useTemplates";
 import { useTemplatesListPageState } from "../hooks/useTemplatesListPageState";
@@ -15,6 +16,7 @@ import { useTemplatesListPageState } from "../hooks/useTemplatesListPageState";
 export function TemplatesListPage() {
   const templatesQuery = useTemplates();
   const syncTemplates = useSyncTemplates();
+  const syncTemplate = useSyncTemplate();
   const retryTemplateSubmission = useRetryTemplateSubmission();
   const deleteTemplate = useDeleteTemplate();
   const templates = templatesQuery.data ?? [];
@@ -62,9 +64,9 @@ export function TemplatesListPage() {
           <TemplateTable
             templates={listState.filteredTemplates}
             retryingTemplateId={retryTemplateSubmission.isPending ? (retryTemplateSubmission.variables ?? null) : null}
-            syncingTemplateId={listState.syncingTemplateId}
+            syncingTemplateId={syncTemplate.isPending ? (syncTemplate.variables ?? null) : null}
             onViewTemplate={listState.viewTemplate}
-            onSyncTemplate={listState.syncTemplate}
+            onSyncTemplate={(templateId) => syncTemplate.mutate(templateId)}
             onDuplicateTemplate={(templateId) => listState.runPlaceholderAction("duplicate", templateId)}
             onRetrySubmission={(templateId) => retryTemplateSubmission.mutate(templateId)}
             onDeleteTemplate={(templateId) => {

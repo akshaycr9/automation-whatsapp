@@ -49,6 +49,7 @@ export function createApp() {
   app.use("/api/auth", authRoutes);
   app.use("/api/templates", templatesRoutes);
   app.use("/api/webhooks", webhooksRoutes);
+  app.use("/webhooks", webhooksRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

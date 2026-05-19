@@ -21,6 +21,8 @@ import { MetaTemplateCredentialResolver } from "../providers/meta/meta-template-
 import { TemplateProviderError } from "../providers/meta/meta-template.errors.js";
 import type { TemplateProviderAdapter } from "../providers/template-provider.adapter.js";
 import { TemplateRepository } from "../repositories/template.repository.js";
+import type { TemplateProviderCredentials } from "../providers/template-provider.adapter.js";
+import type { TemplateRecord } from "../repositories/template.repository.js";
 
 export class TemplateDomainService {
   constructor(
@@ -303,6 +305,90 @@ export class TemplateDomainService {
     }
   }
 
+  async syncTemplate(id: string, context: TemplateScope) {
+    const template = await this.repository.findById(id, context);
+
+    if (!template) {
+      throw new TemplateNotFoundError();
+    }
+
+    const credentials = this.credentialResolver.resolve(context);
+    const payloadRecord = await this.repository.createProviderPayload({
+      templateId: template.id,
+      action: TemplateProviderAction.SYNC,
+      requestPayload: {
+        operation: "getTemplate",
+        templateId: template.id,
+        metaTemplateId: template.metaTemplateId,
+        name: template.name,
+        languageCode: template.languageCode
+      }
+    });
+
+    try {
+      const providerResult =
+        template.metaTemplateId && this.providerAdapter.getTemplate
+          ? await this.providerAdapter.getTemplate({
+              credentials,
+              providerTemplateId: template.metaTemplateId
+            })
+          : await this.findProviderTemplateByNameAndLanguage(template, credentials);
+
+      if (!providerResult?.template) {
+        await this.repository.updateProviderPayload(payloadRecord.id, {
+          errorCode: "META_TEMPLATE_NOT_FOUND",
+          errorMessage: "Template was not found on Meta during row sync."
+        });
+        throw new TemplateSyncFailedError("Template was not found on Meta.");
+      }
+
+      const rawStatus = (providerResult.template.raw as { status?: string } | null)?.status;
+      const status = isKnownMetaTemplateStatus(rawStatus) ? providerResult.template.status : template.status;
+      const updated = await this.repository.updateFromProvider(
+        template.id,
+        {
+          metaTemplateId: providerResult.template.providerTemplateId,
+          wabaId: credentials.wabaId,
+          category: providerResult.template.category,
+          type: providerResult.template.type,
+          languageCode: providerResult.template.languageCode,
+          status,
+          qualityRating: providerResult.template.qualityRating,
+          rejectionReason: providerResult.template.rejectionReason,
+          lastSyncedAt: new Date()
+        },
+        context
+      );
+
+      await this.repository.updateProviderPayload(payloadRecord.id, {
+        responsePayload: providerResult.raw,
+        statusCode: providerResult.statusCode
+      });
+      await this.createProviderStatusEvents({
+        templateId: template.id,
+        oldStatus: template.status,
+        newStatus: status,
+        source: "sync",
+        metadata: { rowSync: true, rawStatus: rawStatus ?? null },
+        createdById: context.adminUserId
+      });
+
+      return {
+        data: mapTemplateToDetailResponse(updated ?? template),
+        message: "Template synced successfully"
+      };
+    } catch (error) {
+      const providerError = this.normalizeProviderError(error);
+      await this.repository.updateProviderPayload(payloadRecord.id, {
+        responsePayload: providerError.raw,
+        statusCode: providerError.statusCode,
+        errorCode: providerError.code,
+        errorMessage: providerError.message
+      });
+      throw new TemplateSyncFailedError("Template sync failed. Please try again later.");
+    }
+  }
+
   async syncTemplates(context: TemplateScope) {
     const payloadRecord = await this.repository.createProviderPayload({
       action: TemplateProviderAction.SYNC,
@@ -437,6 +523,24 @@ export class TemplateDomainService {
       message: error instanceof Error ? error.message : "Meta template API request failed.",
       statusCode: 500,
       raw: null
+    };
+  }
+
+  private async findProviderTemplateByNameAndLanguage(
+    template: TemplateRecord,
+    credentials: TemplateProviderCredentials
+  ) {
+    const providerResult = await this.providerAdapter.listTemplates({ credentials });
+    const providerTemplate = providerResult.templates.find(
+      (candidate) => candidate.name === template.name && candidate.languageCode === template.languageCode
+    );
+
+    if (!providerTemplate) return null;
+
+    return {
+      template: providerTemplate,
+      raw: providerTemplate.raw,
+      statusCode: providerResult.statusCode
     };
   }
 

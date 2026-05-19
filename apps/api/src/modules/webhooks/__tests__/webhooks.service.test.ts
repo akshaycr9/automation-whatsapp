@@ -1,4 +1,5 @@
 import { TemplateEventType, TemplateProviderAction, TemplateQualityRating, TemplateStatus } from "@prisma/client";
+import { MetaTemplateStatusWebhookHandler } from "../handlers/meta-template-status.handler.js";
 import { WebhooksService } from "../webhooks.service.js";
 
 function createRepository(overrides: Record<string, unknown> = {}) {
@@ -19,9 +20,9 @@ it("updates a local template from a Meta template status webhook", async () => {
       status: TemplateStatus.PENDING
     })
   });
-  const service = new WebhooksService(repository as never);
+  const service = new WebhooksService([new MetaTemplateStatusWebhookHandler(repository as never)]);
 
-  await service.handleMetaTemplateStatus({
+  await service.handleMetaWebhook({
     entry: [
       {
         id: "waba_123",
@@ -70,10 +71,16 @@ it("does not create duplicate lifecycle events when status is unchanged", async 
       status: TemplateStatus.APPROVED
     })
   });
-  const service = new WebhooksService(repository as never);
+  const service = new WebhooksService([new MetaTemplateStatusWebhookHandler(repository as never)]);
 
-  await service.handleMetaTemplateStatus({
-    entry: [{ changes: [{ value: { message_template_id: "meta_123", event: "APPROVED" } }] }]
+  await service.handleMetaWebhook({
+    entry: [
+      {
+        changes: [
+          { field: "message_template_status_update", value: { message_template_id: "meta_123", event: "APPROVED" } }
+        ]
+      }
+    ]
   });
 
   expect(repository.createEvent).toHaveBeenCalledTimes(1);
@@ -89,10 +96,16 @@ it("stores unknown Meta statuses without crashing or changing local status", asy
       status: TemplateStatus.PENDING
     })
   });
-  const service = new WebhooksService(repository as never);
+  const service = new WebhooksService([new MetaTemplateStatusWebhookHandler(repository as never)]);
 
-  await service.handleMetaTemplateStatus({
-    entry: [{ changes: [{ value: { message_template_id: "meta_123", event: "IN_APPEAL" } }] }]
+  await service.handleMetaWebhook({
+    entry: [
+      {
+        changes: [
+          { field: "message_template_status_update", value: { message_template_id: "meta_123", event: "IN_APPEAL" } }
+        ]
+      }
+    ]
   });
 
   expect(repository.updateFromWebhook).toHaveBeenCalledWith(
@@ -106,10 +119,19 @@ it("audits unmatched webhook events", async () => {
   const repository = createRepository({
     findByWebhookIdentity: vi.fn().mockResolvedValue(null)
   });
-  const service = new WebhooksService(repository as never);
+  const service = new WebhooksService([new MetaTemplateStatusWebhookHandler(repository as never)]);
 
-  const result = await service.handleMetaTemplateStatus({
-    entry: [{ changes: [{ value: { message_template_id: "missing_meta_123", event: "REJECTED" } }] }]
+  const result = await service.handleMetaWebhook({
+    entry: [
+      {
+        changes: [
+          {
+            field: "message_template_status_update",
+            value: { message_template_id: "missing_meta_123", event: "REJECTED" }
+          }
+        ]
+      }
+    ]
   });
 
   expect(result.data.processedCount).toBe(0);

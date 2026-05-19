@@ -1,6 +1,6 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { renderWithProviders } from "@/test/test-utils";
 import { server } from "@/test/mocks/server";
@@ -138,12 +138,24 @@ it("renders sync actions and created dates", async () => {
 
 it("shows syncing feedback for the clicked template", async () => {
   const user = userEvent.setup();
+  let syncCalled = false;
+  server.use(
+    http.post("http://localhost:4000/api/templates/tmpl_delivery_update_v1/sync", async () => {
+      syncCalled = true;
+      await delay(100);
+      return HttpResponse.json({
+        data: { ...mockTemplates[1], status: "APPROVED" },
+        message: "Template synced successfully"
+      });
+    })
+  );
   renderTemplatesList();
 
   await screen.findAllByText("Order confirmation");
   await user.click(screen.getAllByRole("button", { name: "Sync" })[0]!);
 
   expect(screen.getAllByRole("button", { name: "Syncing" })).toHaveLength(2);
+  expect(syncCalled).toBe(true);
 });
 
 it("shows retry action for error templates and calls retry API", async () => {

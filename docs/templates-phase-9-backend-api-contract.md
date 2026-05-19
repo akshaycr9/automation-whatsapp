@@ -10,14 +10,15 @@ The contract assumes all template endpoints are authenticated admin APIs and tha
 
 ## Endpoint List
 
-| Method   | Path                                 | Purpose                                              | Auth                          |
-| -------- | ------------------------------------ | ---------------------------------------------------- | ----------------------------- |
-| `GET`    | `/api/templates`                     | List templates with filters, sorting, and pagination | Required                      |
-| `GET`    | `/api/templates/:id`                 | Fetch one template detail                            | Required                      |
-| `POST`   | `/api/templates`                     | Submit a new template                                | Required                      |
-| `POST`   | `/api/templates/sync`                | Sync templates from Meta into local records          | Required                      |
-| `DELETE` | `/api/templates/:id`                 | Soft-delete a local template record                  | Required                      |
-| `POST`   | `/api/webhooks/meta/template-status` | Future Meta template status webhook                  | Meta signature required later |
+| Method   | Path                  | Purpose                                              | Auth           |
+| -------- | --------------------- | ---------------------------------------------------- | -------------- |
+| `GET`    | `/api/templates`      | List templates with filters, sorting, and pagination | Required       |
+| `GET`    | `/api/templates/:id`  | Fetch one template detail                            | Required       |
+| `POST`   | `/api/templates`      | Submit a new template                                | Required       |
+| `POST`   | `/api/templates/sync` | Sync templates from Meta into local records          | Required       |
+| `DELETE` | `/api/templates/:id`  | Soft-delete a local template record                  | Required       |
+| `GET`    | `/webhooks/meta`      | Meta webhook callback verification                   | Verify token   |
+| `POST`   | `/webhooks/meta`      | Meta webhook callback receiver                       | Meta signature |
 
 ## Enums
 
@@ -316,15 +317,15 @@ For the first backend implementation, only `TEXT` templates should be accepted. 
 
 Deletion should be a local soft delete first. Meta deletion can be added later depending on product and provider support.
 
-## Future Webhook: `POST /api/webhooks/meta/template-status`
+## Meta Webhook: `/webhooks/meta`
 
-This endpoint is documented only for now. Expected future behavior:
+Meta webhooks use one callback URL and dispatch by `entry[].changes[].field`.
 
-- Verify the Meta signature before parsing trusted data.
-- Parse template status updates from Meta.
-- Update the local template status using provider identifiers and workspace/store/business scope.
-- Store a webhook audit event with raw payload metadata for troubleshooting.
-- Return a lightweight success acknowledgement.
+- `GET /webhooks/meta` verifies callback setup with `hub.verify_token` and `hub.challenge`.
+- `POST /webhooks/meta` verifies the Meta signature before parsing trusted data.
+- `message_template_status_update` is handled by the template status handler.
+- `messages` is acknowledged for future conversation processing.
+- Unsupported fields are ignored with a lightweight success acknowledgement.
 
 ## Error Response Format
 

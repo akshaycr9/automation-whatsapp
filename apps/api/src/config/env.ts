@@ -19,6 +19,7 @@ const envSchema = z.object({
   META_WABA_ID: z.string().optional(),
   META_ACCESS_TOKEN: z.string().optional(),
   META_APP_SECRET: z.string().optional(),
+  META_VERIFY_TOKEN: z.string().optional(),
   META_WEBHOOK_VERIFY_DISABLED: z
     .enum(["true", "false"])
     .optional()
