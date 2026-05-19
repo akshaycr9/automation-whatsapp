@@ -11,7 +11,10 @@ import { TemplateFactoryResolver } from "../domain/template.factory.js";
 import { mapTemplateToDetailResponse, mapTemplateToListItem } from "../domain/template.mapper.js";
 import type { CreateTemplateInput, TemplateListQuery, TemplateScope } from "../domain/template.types.js";
 import { validateCreateTemplateInput } from "../domain/template.validators.js";
-import { mapCreateTemplateInputToMetaPayload } from "../providers/meta/meta-template.mapper.js";
+import {
+  isKnownMetaTemplateStatus,
+  mapCreateTemplateInputToMetaPayload
+} from "../providers/meta/meta-template.mapper.js";
 import { MetaTemplateAdapter } from "../providers/meta/meta-template.adapter.js";
 import { MetaTemplateCredentialResolver } from "../providers/meta/meta-template-credentials.js";
 import { TemplateProviderError } from "../providers/meta/meta-template.errors.js";
@@ -181,10 +184,15 @@ export class TemplateDomainService {
       });
       let createdCount = 0;
       let updatedCount = 0;
+      let failedCount = 0;
       const syncedAt = new Date();
+      const credentials = this.credentialResolver.resolve(context);
 
       for (const providerTemplate of providerResult.templates) {
-        if (!providerTemplate.name) continue;
+        if (!providerTemplate.name) {
+          failedCount += 1;
+          continue;
+        }
 
         const existing = await this.repository.findByProviderIdentity(
           {
@@ -195,15 +203,22 @@ export class TemplateDomainService {
           context
         );
 
+        const rawStatus = (providerTemplate.raw as { status?: string } | null)?.status;
+        const status = isKnownMetaTemplateStatus(rawStatus)
+          ? providerTemplate.status
+          : (existing?.status ?? TemplateStatus.ERROR);
+
         if (existing) {
+          const oldStatus = existing.status;
           await this.repository.updateFromProvider(
             existing.id,
             {
               metaTemplateId: providerTemplate.providerTemplateId,
+              wabaId: credentials.wabaId,
               category: providerTemplate.category,
               type: providerTemplate.type,
               languageCode: providerTemplate.languageCode,
-              status: providerTemplate.status,
+              status,
               qualityRating: providerTemplate.qualityRating,
               rejectionReason: providerTemplate.rejectionReason,
               lastSyncedAt: syncedAt
@@ -211,16 +226,25 @@ export class TemplateDomainService {
             context
           );
           updatedCount += 1;
+          await this.createProviderStatusEvents({
+            templateId: existing.id,
+            oldStatus,
+            newStatus: status,
+            source: "sync",
+            metadata: { rawStatus: rawStatus ?? null },
+            createdById: context.adminUserId
+          });
         } else {
-          await this.repository.createFromProvider(
+          const created = await this.repository.createFromProvider(
             {
               metaTemplateId: providerTemplate.providerTemplateId,
+              wabaId: credentials.wabaId,
               name: providerTemplate.name,
               displayName: providerTemplate.name,
               category: providerTemplate.category,
               type: providerTemplate.type,
               languageCode: providerTemplate.languageCode,
-              status: providerTemplate.status,
+              status,
               qualityRating: providerTemplate.qualityRating,
               rejectionReason: providerTemplate.rejectionReason,
               lastSyncedAt: syncedAt
@@ -228,6 +252,14 @@ export class TemplateDomainService {
             context
           );
           createdCount += 1;
+          await this.repository.createEvent({
+            templateId: created.id,
+            eventType: TemplateEventType.SYNCED,
+            newStatus: status,
+            message: "Template created locally from Meta sync.",
+            metadata: { rawStatus: rawStatus ?? null },
+            createdById: context.adminUserId
+          });
         }
       }
 
@@ -238,7 +270,7 @@ export class TemplateDomainService {
       await this.repository.createEvent({
         eventType: TemplateEventType.SYNCED,
         message: "Templates synced from Meta.",
-        metadata: { createdCount, updatedCount, syncedCount: providerResult.templates.length },
+        metadata: { createdCount, updatedCount, syncedCount: providerResult.templates.length, failedCount },
         createdById: context.adminUserId
       });
 
@@ -247,7 +279,7 @@ export class TemplateDomainService {
           syncedCount: providerResult.templates.length,
           createdCount,
           updatedCount,
-          failedCount: 0
+          failedCount
         },
         message: "Templates synced successfully"
       };
@@ -275,5 +307,56 @@ export class TemplateDomainService {
       statusCode: 500,
       raw: null
     };
+  }
+
+  private async createProviderStatusEvents(input: {
+    templateId: string;
+    oldStatus: TemplateStatus;
+    newStatus: TemplateStatus;
+    source: "sync" | "webhook";
+    metadata?: unknown;
+    createdById?: string | null;
+  }) {
+    await this.repository.createEvent({
+      templateId: input.templateId,
+      eventType: input.source === "sync" ? TemplateEventType.SYNCED : TemplateEventType.WEBHOOK_RECEIVED,
+      oldStatus: input.oldStatus,
+      newStatus: input.newStatus,
+      message: input.source === "sync" ? "Template status synced from Meta." : "Meta template webhook received.",
+      metadata: input.metadata,
+      createdById: input.createdById ?? null
+    });
+
+    if (input.oldStatus === input.newStatus) return;
+
+    const eventType = this.statusToEventType(input.newStatus);
+    if (!eventType) return;
+
+    await this.repository.createEvent({
+      templateId: input.templateId,
+      eventType,
+      oldStatus: input.oldStatus,
+      newStatus: input.newStatus,
+      message: `Template status changed from ${input.oldStatus} to ${input.newStatus}.`,
+      metadata: input.metadata,
+      createdById: input.createdById ?? null
+    });
+  }
+
+  private statusToEventType(status: TemplateStatus) {
+    switch (status) {
+      case TemplateStatus.APPROVED:
+        return TemplateEventType.APPROVED;
+      case TemplateStatus.REJECTED:
+        return TemplateEventType.REJECTED;
+      case TemplateStatus.PAUSED:
+        return TemplateEventType.PAUSED;
+      case TemplateStatus.DISABLED:
+        return TemplateEventType.DISABLED;
+      case TemplateStatus.ERROR:
+        return TemplateEventType.ERROR;
+      default:
+        return null;
+    }
   }
 }

@@ -81,7 +81,7 @@ export function mapCreateTemplateInputToMetaPayload(input: CreateTemplateInput):
 export function mapMetaCreateResponse(response: MetaTemplateResponse, statusCode: number) {
   return {
     providerTemplateId: response.id ?? null,
-    status: mapMetaStatus(response.status),
+    status: mapMetaTemplateStatus(response.status),
     raw: response,
     statusCode
   };
@@ -102,7 +102,7 @@ export function mapMetaTemplateSummary(template: MetaTemplateResponse): Provider
     category: mapMetaCategory(template.category),
     type: TemplateType.TEXT,
     languageCode: template.language ?? "en",
-    status: mapMetaStatus(template.status),
+    status: mapMetaTemplateStatus(template.status),
     qualityRating: mapMetaQuality(template.quality_score?.score),
     rejectionReason: template.rejected_reason ?? null,
     raw: template
@@ -121,7 +121,7 @@ function mapMetaCategory(category: string | undefined) {
   return TemplateCategory.UTILITY;
 }
 
-function mapMetaStatus(status: string | undefined) {
+export function mapMetaTemplateStatus(status: string | undefined, fallback: TemplateStatus = TemplateStatus.PENDING) {
   switch (status) {
     case TemplateStatus.APPROVED:
       return TemplateStatus.APPROVED;
@@ -135,8 +135,19 @@ function mapMetaStatus(status: string | undefined) {
     case undefined:
       return TemplateStatus.PENDING;
     default:
-      return TemplateStatus.PENDING;
+      return fallback;
   }
+}
+
+export function isKnownMetaTemplateStatus(status: string | undefined) {
+  return (
+    status === TemplateStatus.APPROVED ||
+    status === TemplateStatus.REJECTED ||
+    status === TemplateStatus.PAUSED ||
+    status === TemplateStatus.DISABLED ||
+    status === "PENDING" ||
+    status === undefined
+  );
 }
 
 function mapMetaQuality(score: string | undefined) {
