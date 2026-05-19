@@ -1,6 +1,7 @@
 import type { TemplateVariable } from "../types/template.types";
 
 const TEMPLATE_VARIABLE_PATTERN = /\{\{(\d+)\}\}/g;
+const TEMPLATE_LIKE_VARIABLE_PATTERN = /\{\{[^}]*\}\}|\{+\s*[^{}\s]+\s*\}+/g;
 
 export function extractTemplateVariables(text: string): TemplateVariable[] {
   const seen = new Map<number, TemplateVariable>();
@@ -21,6 +22,14 @@ export function extractTemplateVariables(text: string): TemplateVariable[] {
   }
 
   return [...seen.values()].sort((a, b) => a.index - b.index);
+}
+
+export function extractBodyTemplateVariables(text: string): TemplateVariable[] {
+  return extractTemplateVariables(text).map((variable) => ({
+    ...variable,
+    componentType: "BODY",
+    componentPath: "bodyText"
+  }));
 }
 
 export function getVariablePositions(text: string) {
@@ -54,4 +63,36 @@ export function areVariablesSequential(variables: Array<TemplateVariable | strin
 
 export function replaceVariablesWithSamples(text: string, sampleValues: Record<string, string>) {
   return text.replace(TEMPLATE_VARIABLE_PATTERN, (token) => sampleValues[token] || token);
+}
+
+export function getMissingVariablePositions(variables: Array<TemplateVariable | string>) {
+  const indexes = variables
+    .map((variable) => (typeof variable === "string" ? Number(variable.match(/^\{\{(\d+)\}\}$/)?.[1]) : variable.index))
+    .filter((index) => Number.isInteger(index))
+    .sort((a, b) => a - b);
+
+  if (indexes.length === 0) {
+    return [];
+  }
+
+  const uniqueIndexes = [...new Set(indexes)];
+  const highestIndex = uniqueIndexes[uniqueIndexes.length - 1] ?? 0;
+
+  return Array.from({ length: highestIndex }, (_, index) => index + 1).filter(
+    (index) => !uniqueIndexes.includes(index)
+  );
+}
+
+export function findInvalidVariableSyntax(text: string) {
+  const invalidTokens = new Set<string>();
+  const validTokens = new Set([...text.matchAll(TEMPLATE_VARIABLE_PATTERN)].map((match) => match[0]));
+
+  for (const match of text.matchAll(TEMPLATE_LIKE_VARIABLE_PATTERN)) {
+    const token = match[0];
+    if (!validTokens.has(token)) {
+      invalidTokens.add(token);
+    }
+  }
+
+  return [...invalidTokens];
 }

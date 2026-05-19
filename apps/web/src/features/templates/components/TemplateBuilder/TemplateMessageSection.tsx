@@ -12,6 +12,7 @@ type TemplateMessageSectionProps = {
   onHeaderTextChange: (value: string) => void;
   onBodyTextChange: (value: string) => void;
   onFooterTextChange: (value: string) => void;
+  errors?: Partial<Record<"headerText" | "bodyText" | "footerText", string[]>>;
 };
 
 export function TemplateMessageSection({
@@ -22,7 +23,8 @@ export function TemplateMessageSection({
   onHeaderFormatChange,
   onHeaderTextChange,
   onBodyTextChange,
-  onFooterTextChange
+  onFooterTextChange,
+  errors = {}
 }: TemplateMessageSectionProps) {
   return (
     <section
@@ -38,9 +40,10 @@ export function TemplateMessageSection({
           text={headerText}
           onFormatChange={onHeaderFormatChange}
           onTextChange={onHeaderTextChange}
+          error={errors.headerText?.[0]}
         />
-        <BodyEditor value={bodyText} onChange={onBodyTextChange} />
-        <FooterEditor value={footerText} onChange={onFooterTextChange} />
+        <BodyEditor value={bodyText} onChange={onBodyTextChange} error={errors.bodyText?.[0]} />
+        <FooterEditor value={footerText} onChange={onFooterTextChange} error={errors.footerText?.[0]} />
       </div>
     </section>
   );

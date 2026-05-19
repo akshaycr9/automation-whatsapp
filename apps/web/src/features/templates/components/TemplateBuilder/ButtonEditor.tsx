@@ -10,6 +10,7 @@ import type { TemplateButton, TemplateButtonType } from "../../types/template.ty
 type ButtonEditorProps = {
   buttons: TemplateButton[];
   onButtonsChange: (buttons: TemplateButton[]) => void;
+  errors?: Record<string, string[]>;
 };
 
 const buttonTypes: Array<Extract<TemplateButtonType, "QUICK_REPLY" | "URL" | "PHONE_NUMBER">> = [
@@ -18,7 +19,7 @@ const buttonTypes: Array<Extract<TemplateButtonType, "QUICK_REPLY" | "URL" | "PH
   "PHONE_NUMBER"
 ];
 
-export function ButtonEditor({ buttons, onButtonsChange }: ButtonEditorProps) {
+export function ButtonEditor({ buttons, onButtonsChange, errors = {} }: ButtonEditorProps) {
   const buttonCounts = getButtonCounts(buttons);
   const canAddButton = buttons.length < TEMPLATE_BUTTON_TOTAL_MAX_COUNT && getDefaultButtonType(buttons) !== null;
 
@@ -67,6 +68,7 @@ export function ButtonEditor({ buttons, onButtonsChange }: ButtonEditorProps) {
         quick replies, {TEMPLATE_URL_BUTTON_MAX_COUNT} URL buttons, and {TEMPLATE_PHONE_NUMBER_BUTTON_MAX_COUNT} phone
         number button.
       </p>
+      {errors.buttons?.[0] ? <p className="mt-2 text-xs text-error">{errors.buttons[0]}</p> : null}
 
       <div className="mt-4 space-y-3">
         {buttons.length === 0 ? <p className="text-sm text-text-subtle">No interactive actions added.</p> : null}
@@ -147,6 +149,9 @@ export function ButtonEditor({ buttons, onButtonsChange }: ButtonEditorProps) {
                 </div>
               ) : null}
             </div>
+            {errors[`buttons.${index}`]?.[0] ? (
+              <p className="mt-2 text-xs text-error">{errors[`buttons.${index}`]?.[0]}</p>
+            ) : null}
           </div>
         ))}
       </div>

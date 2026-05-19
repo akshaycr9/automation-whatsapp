@@ -30,6 +30,10 @@ it("renders the create template screen", () => {
   expect(screen.getByLabelText("Language")).toHaveValue("");
   expect(screen.getByLabelText("Body")).toHaveValue("");
   expect(screen.getByLabelText("Header format")).toHaveValue("NONE");
+  expect(screen.queryByText("Template name is required.")).not.toBeInTheDocument();
+  expect(screen.queryByText("Select a category.")).not.toBeInTheDocument();
+  expect(screen.queryByText("Select a language.")).not.toBeInTheDocument();
+  expect(screen.queryByText("Body text is required.")).not.toBeInTheDocument();
 });
 
 it("updates the preview from body text", async () => {
@@ -65,6 +69,26 @@ it("updates the validation checklist when body is cleared", async () => {
   await user.clear(screen.getByLabelText("Body"));
 
   expect(screen.getByRole("button", { name: "Submit for approval" })).toBeDisabled();
+});
+
+it("shows an error for an invalid template name", async () => {
+  const user = userEvent.setup();
+  renderCreateTemplatePage();
+
+  await user.type(screen.getByLabelText("Template name"), "Order Confirmation");
+
+  expect(screen.getByText("Template name must start with a lowercase letter.")).toBeInTheDocument();
+});
+
+it("shows required errors after a touched field is cleared", async () => {
+  const user = userEvent.setup();
+  renderCreateTemplatePage();
+
+  await user.type(screen.getByLabelText("Template name"), "order_confirmation_v1");
+  await user.clear(screen.getByLabelText("Template name"));
+
+  expect(screen.getByText("Template name is required.")).toBeInTheDocument();
+  expect(screen.queryByText("Select a category.")).not.toBeInTheDocument();
 });
 
 it("adds and removes a button", async () => {

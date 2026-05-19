@@ -4,9 +4,15 @@ type VariableMappingPanelProps = {
   variables: TemplateVariable[];
   sampleValues: Record<string, string>;
   onSampleValueChange: (token: string, value: string) => void;
+  errors?: Record<string, string[]>;
 };
 
-export function VariableMappingPanel({ variables, sampleValues, onSampleValueChange }: VariableMappingPanelProps) {
+export function VariableMappingPanel({
+  variables,
+  sampleValues,
+  onSampleValueChange,
+  errors = {}
+}: VariableMappingPanelProps) {
   return (
     <section
       className="rounded-lg border border-border bg-surface p-4 shadow-sm"
@@ -40,6 +46,9 @@ export function VariableMappingPanel({ variables, sampleValues, onSampleValueCha
                 onChange={(event) => onSampleValueChange(variable.token, event.target.value)}
                 aria-label={`Sample value for ${variable.token}`}
               />
+              {errors[`variables.${variable.token}`]?.[0] ? (
+                <p className="text-xs text-error md:col-start-3">{errors[`variables.${variable.token}`]?.[0]}</p>
+              ) : null}
             </div>
           ))}
         </div>

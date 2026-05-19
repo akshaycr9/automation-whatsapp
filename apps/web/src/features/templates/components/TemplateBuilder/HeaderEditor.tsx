@@ -6,9 +6,10 @@ type HeaderEditorProps = {
   text: string;
   onFormatChange: (value: TemplateHeaderFormat) => void;
   onTextChange: (value: string) => void;
+  error?: string | undefined;
 };
 
-export function HeaderEditor({ format, text, onFormatChange, onTextChange }: HeaderEditorProps) {
+export function HeaderEditor({ format, text, onFormatChange, onTextChange, error }: HeaderEditorProps) {
   return (
     <section className="space-y-3" aria-labelledby="template-header-title">
       <div>
@@ -42,6 +43,7 @@ export function HeaderEditor({ format, text, onFormatChange, onTextChange }: Hea
           <p className="text-xs text-text-subtle">
             {text.length}/{HEADER_TEXT_MAX_LENGTH}
           </p>
+          {error ? <p className="text-xs text-error">{error}</p> : null}
         </div>
       ) : null}
     </section>

@@ -14,6 +14,7 @@ type TemplateBasicInfoSectionProps = {
   onDisplayNameChange: (value: string) => void;
   onCategoryChange: (value: TemplateCategory | "") => void;
   onLanguageCodeChange: (value: string) => void;
+  errors?: Partial<Record<"name" | "category" | "languageCode", string[]>>;
 };
 
 export function TemplateBasicInfoSection({
@@ -25,7 +26,8 @@ export function TemplateBasicInfoSection({
   onNameChange,
   onDisplayNameChange,
   onCategoryChange,
-  onLanguageCodeChange
+  onLanguageCodeChange,
+  errors = {}
 }: TemplateBasicInfoSectionProps) {
   return (
     <section
@@ -36,7 +38,12 @@ export function TemplateBasicInfoSection({
         Basic information
       </h2>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <Field label="Template name" htmlFor="template-name" help="Lowercase letters, numbers, and underscores only.">
+        <Field
+          label="Template name"
+          htmlFor="template-name"
+          help="Lowercase letters, numbers, and underscores only."
+          error={errors.name?.[0]}
+        >
           <Input
             id="template-name"
             value={name}
@@ -52,7 +59,7 @@ export function TemplateBasicInfoSection({
             placeholder="Order update"
           />
         </Field>
-        <Field label="Category" htmlFor="template-category">
+        <Field label="Category" htmlFor="template-category" error={errors.category?.[0]}>
           <select
             id="template-category"
             className="block min-h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
@@ -67,7 +74,7 @@ export function TemplateBasicInfoSection({
             ))}
           </select>
         </Field>
-        <Field label="Language" htmlFor="template-language">
+        <Field label="Language" htmlFor="template-language" error={errors.languageCode?.[0]}>
           <select
             id="template-language"
             className="block min-h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
@@ -94,11 +101,13 @@ function Field({
   label,
   htmlFor,
   help,
+  error,
   children
 }: {
   label: string;
   htmlFor: string;
   help?: string;
+  error?: string | undefined;
   children: ReactNode;
 }) {
   return (
@@ -107,7 +116,11 @@ function Field({
         {label}
       </label>
       {children}
-      {help ? <p className="text-xs text-text-subtle">{help}</p> : null}
+      {error ? (
+        <p className="text-xs text-error">{error}</p>
+      ) : help ? (
+        <p className="text-xs text-text-subtle">{help}</p>
+      ) : null}
     </div>
   );
 }

@@ -3,9 +3,10 @@ import { FOOTER_TEXT_MAX_LENGTH } from "../../constants/template.constants";
 type FooterEditorProps = {
   value: string;
   onChange: (value: string) => void;
+  error?: string | undefined;
 };
 
-export function FooterEditor({ value, onChange }: FooterEditorProps) {
+export function FooterEditor({ value, onChange, error }: FooterEditorProps) {
   return (
     <section className="space-y-1.5">
       <label className="text-sm font-medium text-text-muted" htmlFor="template-footer-text">
@@ -22,6 +23,7 @@ export function FooterEditor({ value, onChange }: FooterEditorProps) {
       <p className="text-xs text-text-subtle">
         {value.length}/{FOOTER_TEXT_MAX_LENGTH}
       </p>
+      {error ? <p className="text-xs text-error">{error}</p> : null}
     </section>
   );
 }
