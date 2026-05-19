@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { templateKeys } from "../api/template.keys";
 import { templateApi } from "../api/templateApi";
+import { templateKeys } from "./templateKeys";
 
 export function useSyncTemplates() {
   const queryClient = useQueryClient();
