@@ -164,6 +164,16 @@ export class TemplateRepository {
     });
   }
 
+  findAnyByNameAndLanguage(name: string, languageCode: string, scope: TemplateScope) {
+    return this.db.whatsAppTemplate.findFirst({
+      where: {
+        adminUserId: scope.adminUserId,
+        name,
+        languageCode
+      }
+    });
+  }
+
   createWithRelations(data: PreparedTemplateCreateData, scope: TemplateScope) {
     return this.db.whatsAppTemplate.create({
       data: {
