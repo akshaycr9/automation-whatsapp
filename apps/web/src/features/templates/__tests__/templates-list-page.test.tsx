@@ -1,12 +1,41 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { renderWithProviders } from "@/test/test-utils";
+import { server } from "@/test/mocks/server";
 import { TemplateCategoryBadge } from "../components/TemplateList/TemplateCategoryBadge";
 import { TemplateStatusBadge } from "../components/TemplateList/TemplateStatusBadge";
+import { mockTemplates } from "../data/mockTemplates";
 import { TemplatesListPage } from "../pages/templates-page";
 
 function renderTemplatesList() {
+  server.use(
+    http.post("http://localhost:4000/api/auth/refresh", () =>
+      HttpResponse.json({
+        data: {
+          admin: { id: "admin_123", email: "admin@example.com", lastLoginAt: null },
+          accessToken: "access-token"
+        }
+      })
+    ),
+    http.get("http://localhost:4000/api/templates", () =>
+      HttpResponse.json({
+        data: mockTemplates,
+        pagination: { page: 1, limit: mockTemplates.length, total: mockTemplates.length, totalPages: 1 }
+      })
+    ),
+    http.post("http://localhost:4000/api/templates/sync", () =>
+      HttpResponse.json({
+        data: { syncedCount: 0, createdCount: 0, updatedCount: 0, failedCount: 0 },
+        message: "Templates synced successfully"
+      })
+    ),
+    http.delete("http://localhost:4000/api/templates/:id", ({ params }) =>
+      HttpResponse.json({ data: { id: params.id, status: "DELETED" }, message: "Template deleted successfully" })
+    )
+  );
+
   const router = createMemoryRouter(
     [
       { path: "/templates", element: <TemplatesListPage /> },

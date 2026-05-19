@@ -6,6 +6,7 @@ import { TemplateListHeader } from "../components/TemplateList/TemplateListHeade
 import { TemplateListSkeleton } from "../components/TemplateList/TemplateListSkeleton";
 import { TemplateListToolbar } from "../components/TemplateList/TemplateListToolbar";
 import { TemplateTable } from "../components/TemplateList/TemplateTable";
+import { useDeleteTemplate } from "../hooks/useDeleteTemplate";
 import { useSyncTemplates } from "../hooks/useSyncTemplates";
 import { useTemplates } from "../hooks/useTemplates";
 import { useTemplatesListPageState } from "../hooks/useTemplatesListPageState";
@@ -13,6 +14,7 @@ import { useTemplatesListPageState } from "../hooks/useTemplatesListPageState";
 export function TemplatesListPage() {
   const templatesQuery = useTemplates();
   const syncTemplates = useSyncTemplates();
+  const deleteTemplate = useDeleteTemplate();
   const templates = templatesQuery.data ?? [];
   const listState = useTemplatesListPageState(templates);
 
@@ -61,7 +63,11 @@ export function TemplatesListPage() {
             onViewTemplate={listState.viewTemplate}
             onSyncTemplate={listState.syncTemplate}
             onDuplicateTemplate={(templateId) => listState.runPlaceholderAction("duplicate", templateId)}
-            onDeleteTemplate={(templateId) => listState.runPlaceholderAction("delete", templateId)}
+            onDeleteTemplate={(templateId) => {
+              if (window.confirm("Delete this template locally?")) {
+                deleteTemplate.mutate(templateId);
+              }
+            }}
           />
         ) : null}
       </SectionErrorBoundary>

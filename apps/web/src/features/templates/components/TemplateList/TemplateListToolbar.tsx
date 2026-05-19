@@ -58,7 +58,7 @@ export function TemplateListToolbar({
       </label>
 
       <Button type="button" variant="secondary" disabled={isSyncing} onClick={onSyncTemplates}>
-        {isSyncing ? "Syncing..." : "Sync mock data"}
+        {isSyncing ? "Syncing..." : "Sync templates"}
       </Button>
     </div>
   );

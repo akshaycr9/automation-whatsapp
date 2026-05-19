@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
+import { ApiError } from "@/lib/api-client";
 import { DEFAULT_TEMPLATE_TYPE } from "../constants/template.constants";
 import { mapTemplateFormToApiPayload } from "../mappers/templateFormToApi.mapper";
 import { useCreateTemplate } from "./useCreateTemplate";
@@ -99,7 +100,7 @@ export function useCreateTemplatePageState() {
   };
 
   const saveDraft = () => {
-    setFeedback("Draft saved locally for this mock flow.");
+    setFeedback("Draft saving in the browser is not connected yet.");
   };
 
   const cancel = () => {
@@ -110,16 +111,18 @@ export function useCreateTemplatePageState() {
     setHasAttemptedSubmit(true);
 
     if (!canSubmit) {
-      setFeedback("Complete the readiness checklist before submitting this mock template.");
+      setFeedback("Complete the readiness checklist before submitting this template.");
       return;
     }
 
     const payload = mapTemplateFormToApiPayload(formValues, detectedVariables);
-    await createTemplate.mutateAsync(payload);
-    if (import.meta.env.DEV) {
-      console.info("[Templates] mock submit", payload);
+    try {
+      const response = await createTemplate.mutateAsync(payload);
+      setFeedback(response.message || "Template submitted successfully.");
+      navigate("/templates");
+    } catch (error) {
+      setFeedback(getCreateTemplateErrorMessage(error));
     }
-    setFeedback("Mock template saved. Backend submission will be connected in a later phase.");
   };
 
   return {
@@ -147,6 +150,27 @@ export function useCreateTemplatePageState() {
     visibleErrors,
     validationResult
   };
+}
+
+function getCreateTemplateErrorMessage(error: unknown) {
+  if (!(error instanceof ApiError)) {
+    return "Template could not be submitted. Please try again.";
+  }
+
+  switch (error.code) {
+    case "TEMPLATE_DUPLICATE_NAME":
+      return "A template with this name and language already exists.";
+    case "TEMPLATE_PROVIDER_ERROR":
+      return "Template could not be submitted to Meta. Please review and try again.";
+    case "TEMPLATE_UNSUPPORTED_TYPE":
+      return "Only text templates can be submitted right now.";
+    case "TEMPLATE_VALIDATION_ERROR":
+      return "Some template details need attention before submission.";
+    case "UNAUTHORIZED":
+      return "Your session has expired. Please sign in again.";
+    default:
+      return error.message || "Template could not be submitted. Please try again.";
+  }
 }
 
 function getVisibleErrors(

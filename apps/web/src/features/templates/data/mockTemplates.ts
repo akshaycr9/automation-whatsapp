@@ -9,7 +9,7 @@ export const mockTemplates: Template[] = [
     type: "TEXT",
     languageCode: "en",
     status: "APPROVED",
-    qualityRating: "HIGH",
+    qualityRating: "GREEN",
     createdAt: "2026-05-01T09:30:00.000Z",
     updatedAt: "2026-05-14T10:15:00.000Z"
   },
@@ -33,7 +33,7 @@ export const mockTemplates: Template[] = [
     type: "TEXT",
     languageCode: "en",
     status: "REJECTED",
-    qualityRating: "LOW",
+    qualityRating: "RED",
     rejectionReason: "Promotional claim needs clearer opt-out language.",
     createdAt: "2026-05-10T08:45:00.000Z",
     updatedAt: "2026-05-10T14:20:00.000Z"
@@ -57,7 +57,7 @@ export const mockTemplates: Template[] = [
     type: "TEXT",
     languageCode: "en",
     status: "PAUSED",
-    qualityRating: "MEDIUM",
+    qualityRating: "YELLOW",
     createdAt: "2026-05-04T16:25:00.000Z",
     updatedAt: "2026-05-11T09:35:00.000Z"
   },
@@ -69,7 +69,7 @@ export const mockTemplates: Template[] = [
     type: "TEXT",
     languageCode: "en",
     status: "APPROVED",
-    qualityRating: "HIGH",
+    qualityRating: "GREEN",
     createdAt: "2026-04-28T07:20:00.000Z",
     updatedAt: "2026-05-16T12:40:00.000Z"
   }

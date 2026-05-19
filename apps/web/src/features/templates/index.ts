@@ -3,6 +3,7 @@ export { TemplateDetailPage } from "./pages/template-detail-page";
 export { TemplatesListPage, TemplatesPage } from "./pages/templates-page";
 
 export { useCreateTemplate } from "./hooks/useCreateTemplate";
+export { useDeleteTemplate } from "./hooks/useDeleteTemplate";
 export { useSyncTemplates } from "./hooks/useSyncTemplates";
 export { useTemplate } from "./hooks/useTemplate";
 export { useTemplates } from "./hooks/useTemplates";
