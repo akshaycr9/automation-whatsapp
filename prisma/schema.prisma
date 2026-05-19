@@ -10,6 +10,88 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TemplateType {
+  TEXT
+  MEDIA
+  CAROUSEL
+  AUTHENTICATION
+}
+
+enum TemplateCategory {
+  UTILITY
+  MARKETING
+  AUTHENTICATION
+}
+
+enum TemplateStatus {
+  DRAFT
+  SUBMITTING
+  PENDING
+  APPROVED
+  REJECTED
+  PAUSED
+  DISABLED
+  DELETED
+  ERROR
+}
+
+enum TemplateComponentType {
+  HEADER
+  BODY
+  FOOTER
+  BUTTONS
+  CAROUSEL
+}
+
+enum TemplateHeaderFormat {
+  NONE
+  TEXT
+  IMAGE
+  VIDEO
+  DOCUMENT
+  LOCATION
+}
+
+enum TemplateButtonType {
+  QUICK_REPLY
+  URL
+  PHONE_NUMBER
+  COPY_CODE
+  FLOW
+}
+
+enum TemplateQualityRating {
+  GREEN
+  YELLOW
+  RED
+  UNKNOWN
+}
+
+enum TemplateProvider {
+  META
+}
+
+enum TemplateProviderAction {
+  CREATE
+  UPDATE
+  DELETE
+  SYNC
+  WEBHOOK
+}
+
+enum TemplateEventType {
+  CREATED
+  SUBMITTED
+  APPROVED
+  REJECTED
+  PAUSED
+  DISABLED
+  SYNCED
+  DELETED
+  WEBHOOK_RECEIVED
+  ERROR
+}
+
 model Placeholder {
   id        String   @id @default(cuid())
   label     String
@@ -18,16 +100,20 @@ model Placeholder {
 }
 
 model AdminUser {
-  id               String           @id @default(cuid())
-  email            String           @unique
+  id               String                  @id @default(cuid())
+  email            String                  @unique
   passwordHash     String
-  isActive         Boolean          @default(true)
-  failedLoginCount Int              @default(0)
+  isActive         Boolean                 @default(true)
+  failedLoginCount Int                     @default(0)
   lockedUntil      DateTime?
   lastLoginAt      DateTime?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
   refreshSessions  RefreshSession[]
+  templates        WhatsAppTemplate[]      @relation("TemplateTenant")
+  createdTemplates WhatsAppTemplate[]      @relation("TemplateCreatedBy")
+  updatedTemplates WhatsAppTemplate[]      @relation("TemplateUpdatedBy")
+  templateEvents   WhatsAppTemplateEvent[] @relation("TemplateEventCreatedBy")
 
   @@index([isActive])
 }
@@ -47,4 +133,138 @@ model RefreshSession {
   @@index([adminUserId])
   @@index([expiresAt])
   @@index([revokedAt])
+}
+
+model WhatsAppTemplate {
+  id                  String                            @id @default(cuid())
+  adminUserId         String
+  wabaId              String?
+  metaTemplateId      String?
+  name                String
+  displayName         String?
+  category            TemplateCategory
+  type                TemplateType
+  languageCode        String
+  status              TemplateStatus                    @default(DRAFT)
+  qualityRating       TemplateQualityRating             @default(UNKNOWN)
+  rejectionReason     String?
+  allowCategoryChange Boolean                           @default(false)
+  lastSyncedAt        DateTime?
+  createdById         String?
+  updatedById         String?
+  createdAt           DateTime                          @default(now())
+  updatedAt           DateTime                          @updatedAt
+  deletedAt           DateTime?
+  adminUser           AdminUser                         @relation("TemplateTenant", fields: [adminUserId], references: [id], onDelete: Cascade)
+  createdBy           AdminUser?                        @relation("TemplateCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy           AdminUser?                        @relation("TemplateUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  components          WhatsAppTemplateComponent[]
+  variables           WhatsAppTemplateVariable[]
+  buttons             WhatsAppTemplateButton[]
+  providerPayloads    WhatsAppTemplateProviderPayload[]
+  events              WhatsAppTemplateEvent[]
+
+  @@unique([adminUserId, name, languageCode])
+  @@index([adminUserId, status])
+  @@index([adminUserId, category])
+  @@index([adminUserId, type])
+  @@index([adminUserId, languageCode])
+  @@index([metaTemplateId])
+  @@index([wabaId])
+  @@index([deletedAt])
+}
+
+model WhatsAppTemplateComponent {
+  id            String                     @id @default(cuid())
+  templateId    String
+  componentType TemplateComponentType
+  format        TemplateHeaderFormat?
+  text          String?
+  sortOrder     Int                        @default(0)
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+  template      WhatsAppTemplate           @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  variables     WhatsAppTemplateVariable[]
+  buttons       WhatsAppTemplateButton[]
+
+  @@unique([templateId, componentType, sortOrder])
+  @@index([templateId])
+}
+
+model WhatsAppTemplateVariable {
+  id            String                     @id @default(cuid())
+  templateId    String
+  componentId   String?
+  componentType TemplateComponentType
+  position      Int
+  placeholder   String
+  label         String?
+  sampleValue   String
+  sourceKey     String?
+  fallbackValue String?
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+  template      WhatsAppTemplate           @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  component     WhatsAppTemplateComponent? @relation(fields: [componentId], references: [id], onDelete: SetNull)
+
+  @@unique([templateId, componentType, position])
+  @@index([templateId])
+  @@index([componentId])
+}
+
+model WhatsAppTemplateButton {
+  id          String                     @id @default(cuid())
+  templateId  String
+  componentId String?
+  buttonType  TemplateButtonType
+  text        String
+  url         String?
+  phoneNumber String?
+  payload     String?
+  flowId      String?
+  sortOrder   Int                        @default(0)
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+  template    WhatsAppTemplate           @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  component   WhatsAppTemplateComponent? @relation(fields: [componentId], references: [id], onDelete: SetNull)
+
+  @@unique([templateId, sortOrder])
+  @@index([templateId])
+  @@index([componentId])
+}
+
+model WhatsAppTemplateProviderPayload {
+  id              String                 @id @default(cuid())
+  templateId      String?
+  provider        TemplateProvider       @default(META)
+  action          TemplateProviderAction
+  requestPayload  Json?
+  responsePayload Json?
+  statusCode      Int?
+  errorCode       String?
+  errorMessage    String?
+  createdAt       DateTime               @default(now())
+  template        WhatsAppTemplate?      @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@index([templateId])
+  @@index([provider, action])
+  @@index([createdAt])
+}
+
+model WhatsAppTemplateEvent {
+  id          String            @id @default(cuid())
+  templateId  String?
+  eventType   TemplateEventType
+  oldStatus   TemplateStatus?
+  newStatus   TemplateStatus?
+  message     String?
+  metadata    Json?
+  createdById String?
+  createdAt   DateTime          @default(now())
+  template    WhatsAppTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  createdBy   AdminUser?        @relation("TemplateEventCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([templateId])
+  @@index([eventType])
+  @@index([createdAt])
 }
