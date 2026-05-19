@@ -25,6 +25,8 @@ export type TemplateVariable = {
   key: string;
   index: number;
   token: string;
+  componentType?: Extract<TemplateComponentType, "HEADER" | "BODY" | "BUTTONS">;
+  componentPath?: string;
   sampleValue?: string;
 };
 
@@ -81,4 +83,50 @@ export type CreateTemplateFormValues = {
   variableSamples: Record<string, string>;
 };
 
-export type CreateTemplatePayload = CreateTemplateFormValues;
+export type TemplateValidationStatus = "valid" | "invalid" | "warning";
+
+export type TemplateValidationChecklistItem = {
+  id: string;
+  label: string;
+  status: TemplateValidationStatus;
+  message?: string | undefined;
+};
+
+export type TemplateValidationResult = {
+  isValid: boolean;
+  errors: Record<string, string[]>;
+  warnings: Record<string, string[]>;
+  checklist: TemplateValidationChecklistItem[];
+};
+
+export type CreateTemplatePayload = {
+  name: string;
+  displayName: string;
+  category: TemplateCategory;
+  type: "TEXT";
+  languageCode: string;
+  components: {
+    header?: {
+      format: "TEXT";
+      text: string;
+    };
+    body: {
+      text: string;
+    };
+    footer?: {
+      text: string;
+    };
+    buttons: Array<{
+      type: Extract<TemplateButtonType, "QUICK_REPLY" | "URL" | "PHONE_NUMBER">;
+      text: string;
+      url?: string;
+      phoneNumber?: string;
+    }>;
+  };
+  variables: Array<{
+    componentType: Extract<TemplateComponentType, "BODY">;
+    position: number;
+    placeholder: string;
+    sampleValue: string;
+  }>;
+};

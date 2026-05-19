@@ -1,17 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import {
-  BODY_TEXT_MAX_LENGTH,
-  BUTTON_TEXT_MAX_LENGTH,
-  DEFAULT_TEMPLATE_TYPE,
-  FOOTER_TEXT_MAX_LENGTH,
-  HEADER_TEXT_MAX_LENGTH,
-  TEMPLATE_BUTTON_TOTAL_MAX_COUNT,
-  TEMPLATE_PHONE_NUMBER_BUTTON_MAX_COUNT,
-  TEMPLATE_QUICK_REPLY_BUTTON_MAX_COUNT,
-  TEMPLATE_URL_BUTTON_MAX_COUNT
-} from "../constants/template.constants";
-import type { ValidationChecklistItem } from "../components/TemplateBuilder/ValidationChecklist";
+import { DEFAULT_TEMPLATE_TYPE } from "../constants/template.constants";
+import { mapTemplateFormToApiPayload } from "../mappers/templateFormToApi.mapper";
 import { useCreateTemplate } from "./useCreateTemplate";
 import type {
   CreateTemplateFormValues,
@@ -19,13 +9,30 @@ import type {
   TemplateCategory,
   TemplateHeaderFormat
 } from "../types/template.types";
-import { areVariablesSequential, extractTemplateVariables } from "../utils/templateVariables";
-import { isValidLanguageCode, isValidTemplateBody, isValidTemplateName } from "../utils/templateValidation";
+import { extractBodyTemplateVariables } from "../utils/templateVariables";
+import { validateCreateTemplateForm } from "../utils/templateValidation";
+
+type TemplateFormTouchedFields = Partial<
+  Record<
+    | "name"
+    | "category"
+    | "languageCode"
+    | "headerText"
+    | "bodyText"
+    | "footerText"
+    | "buttons"
+    | `buttons.${number}`
+    | `variables.${string}`,
+    boolean
+  >
+>;
 
 export function useCreateTemplatePageState() {
   const navigate = useNavigate();
   const createTemplate = useCreateTemplate();
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+  const [touchedFields, setTouchedFields] = useState<TemplateFormTouchedFields>({});
   const [formValues, setFormValues] = useState<CreateTemplateFormValues>({
     name: "",
     displayName: "",
@@ -40,34 +47,54 @@ export function useCreateTemplatePageState() {
     variableSamples: {}
   });
 
-  const detectedVariables = useMemo(
-    () =>
-      extractTemplateVariables(
-        `${formValues.headerText ?? ""}\n${formValues.bodyText}\n${formValues.footerText ?? ""}`
-      ),
-    [formValues.bodyText, formValues.footerText, formValues.headerText]
+  const detectedVariables = useMemo(() => extractBodyTemplateVariables(formValues.bodyText), [formValues.bodyText]);
+  const validationResult = useMemo(() => validateCreateTemplateForm(formValues), [formValues]);
+  const normalizedSubmitPayload = useMemo(
+    () => (validationResult.isValid ? mapTemplateFormToApiPayload(formValues, detectedVariables) : null),
+    [detectedVariables, formValues, validationResult.isValid]
   );
-  const checklist = useMemo(() => buildChecklist(formValues, detectedVariables), [detectedVariables, formValues]);
-  const canSubmit = checklist.every((item) => item.isValid);
+  const canSubmit = validationResult.isValid;
+  const visibleErrors = useMemo(
+    () => getVisibleErrors(validationResult.errors, touchedFields, hasAttemptedSubmit),
+    [hasAttemptedSubmit, touchedFields, validationResult.errors]
+  );
 
-  const updateForm = (nextValues: Partial<CreateTemplateFormValues>) => {
+  const markTouched = (...fields: Array<keyof TemplateFormTouchedFields>) => {
+    setTouchedFields((current) => ({
+      ...current,
+      ...Object.fromEntries(fields.map((field) => [field, true]))
+    }));
+  };
+
+  const updateForm = (
+    nextValues: Partial<CreateTemplateFormValues>,
+    touchedField?: keyof TemplateFormTouchedFields
+  ) => {
     setFeedback(null);
+    if (touchedField) {
+      markTouched(touchedField);
+    }
     setFormValues((current) => ({ ...current, ...nextValues }));
   };
 
   const updateSampleValue = (token: string, value: string) => {
-    updateForm({ variableSamples: { ...formValues.variableSamples, [token]: value } });
+    updateForm({ variableSamples: { ...formValues.variableSamples, [token]: value } }, `variables.${token}`);
   };
 
-  const updateName = (name: string) => updateForm({ name });
+  const updateName = (name: string) => updateForm({ name }, "name");
   const updateDisplayName = (displayName: string) => updateForm({ displayName });
-  const updateCategory = (category: TemplateCategory | "") => updateForm({ category });
-  const updateLanguageCode = (languageCode: string) => updateForm({ languageCode });
-  const updateHeaderFormat = (headerFormat: TemplateHeaderFormat) => updateForm({ headerFormat });
-  const updateHeaderText = (headerText: string) => updateForm({ headerText });
-  const updateBodyText = (bodyText: string) => updateForm({ bodyText });
-  const updateFooterText = (footerText: string) => updateForm({ footerText });
-  const updateButtons = (buttons: TemplateButton[]) => updateForm({ buttons });
+  const updateCategory = (category: TemplateCategory | "") => updateForm({ category }, "category");
+  const updateLanguageCode = (languageCode: string) => updateForm({ languageCode }, "languageCode");
+  const updateHeaderFormat = (headerFormat: TemplateHeaderFormat) => updateForm({ headerFormat }, "headerText");
+  const updateHeaderText = (headerText: string) => updateForm({ headerText }, "headerText");
+  const updateBodyText = (bodyText: string) => updateForm({ bodyText }, "bodyText");
+  const updateFooterText = (footerText: string) => updateForm({ footerText }, "footerText");
+  const updateButtons = (buttons: TemplateButton[]) => {
+    setFeedback(null);
+    const touchedButtonFields = buttons.map((_, index) => `buttons.${index}` as const);
+    markTouched("buttons", ...touchedButtonFields);
+    setFormValues((current) => ({ ...current, buttons }));
+  };
 
   const saveDraft = () => {
     setFeedback("Draft saved locally for this mock flow.");
@@ -78,14 +105,17 @@ export function useCreateTemplatePageState() {
   };
 
   const submitTemplate = async () => {
+    setHasAttemptedSubmit(true);
+
     if (!canSubmit) {
       setFeedback("Complete the readiness checklist before submitting this mock template.");
       return;
     }
 
-    await createTemplate.mutateAsync(formValues);
+    const payload = mapTemplateFormToApiPayload(formValues, detectedVariables);
+    await createTemplate.mutateAsync(payload);
     if (import.meta.env.DEV) {
-      console.info("[Templates] mock submit", formValues);
+      console.info("[Templates] mock submit", payload);
     }
     setFeedback("Mock template saved. Backend submission will be connected in a later phase.");
   };
@@ -93,11 +123,12 @@ export function useCreateTemplatePageState() {
   return {
     cancel,
     canSubmit,
-    checklist,
+    checklist: validationResult.checklist,
     createTemplate,
     detectedVariables,
     feedback,
     formValues,
+    normalizedSubmitPayload,
     saveDraft,
     submitTemplate,
     updateBodyText,
@@ -109,80 +140,34 @@ export function useCreateTemplatePageState() {
     updateHeaderText,
     updateLanguageCode,
     updateName,
-    updateSampleValue
+    updateSampleValue,
+    visibleErrors,
+    validationResult
   };
 }
 
-function buildChecklist(
-  values: CreateTemplateFormValues,
-  variables: ReturnType<typeof extractTemplateVariables>
-): ValidationChecklistItem[] {
-  const buttonCounts = getButtonCounts(values.buttons);
-  const buttonFieldsValid = values.buttons.every((button) => {
-    const hasText = button.text.trim().length > 0 && button.text.length <= BUTTON_TEXT_MAX_LENGTH;
-    if (button.type === "URL") {
-      return hasText && /^https?:\/\/.+/i.test(button.value ?? "");
-    }
-    if (button.type === "PHONE_NUMBER") {
-      return hasText && Boolean(button.value?.trim());
-    }
-    return hasText;
-  });
-  const buttonCountsValid =
-    buttonCounts.total <= TEMPLATE_BUTTON_TOTAL_MAX_COUNT &&
-    buttonCounts.quickReply <= TEMPLATE_QUICK_REPLY_BUTTON_MAX_COUNT &&
-    buttonCounts.url <= TEMPLATE_URL_BUTTON_MAX_COUNT &&
-    buttonCounts.phoneNumber <= TEMPLATE_PHONE_NUMBER_BUTTON_MAX_COUNT;
-  const buttonGroupingValid = areButtonGroupsValid(values.buttons);
+function getVisibleErrors(
+  errors: Record<string, string[]>,
+  touchedFields: TemplateFormTouchedFields,
+  hasAttemptedSubmit: boolean
+) {
+  if (hasAttemptedSubmit) {
+    return errors;
+  }
 
-  return [
-    { id: "name", label: "Template name added", isValid: values.name.trim().length > 0 },
-    {
-      id: "name-format",
-      label: "Template name uses lowercase, numbers, and underscores",
-      isValid: isValidTemplateName(values.name)
-    },
-    { id: "category", label: "Category selected", isValid: Boolean(values.category) },
-    { id: "language", label: "Language selected", isValid: isValidLanguageCode(values.languageCode) },
-    { id: "body", label: "Body message added", isValid: isValidTemplateBody(values.bodyText) },
-    { id: "variables-sequential", label: "Variables are sequential", isValid: areVariablesSequential(variables) },
-    {
-      id: "variable-samples",
-      label: "Sample values added for detected variables",
-      isValid: variables.every((variable) => Boolean(values.variableSamples[variable.token]?.trim()))
-    },
-    {
-      id: "lengths",
-      label: "Header, body, and footer are within limits",
-      isValid:
-        (values.headerText ?? "").length <= HEADER_TEXT_MAX_LENGTH &&
-        values.bodyText.length <= BODY_TEXT_MAX_LENGTH &&
-        (values.footerText ?? "").length <= FOOTER_TEXT_MAX_LENGTH
-    },
-    { id: "button-fields", label: "Buttons have valid labels and destinations", isValid: buttonFieldsValid },
-    { id: "button-counts", label: "Button counts stay within WhatsApp limits", isValid: buttonCountsValid },
-    { id: "button-groups", label: "Quick reply and action buttons are grouped correctly", isValid: buttonGroupingValid }
-  ];
-}
+  return Object.fromEntries(
+    Object.entries(errors).filter(([field]) => {
+      if (touchedFields[field as keyof TemplateFormTouchedFields]) {
+        return true;
+      }
+      if (field.startsWith("variables.")) {
+        return Boolean(touchedFields[field as keyof TemplateFormTouchedFields] || touchedFields.bodyText);
+      }
+      if (field.startsWith("buttons.")) {
+        return Boolean(touchedFields[field as keyof TemplateFormTouchedFields] || touchedFields.buttons);
+      }
 
-function getButtonCounts(buttons: TemplateButton[]) {
-  return {
-    total: buttons.length,
-    quickReply: buttons.filter((button) => button.type === "QUICK_REPLY").length,
-    url: buttons.filter((button) => button.type === "URL").length,
-    phoneNumber: buttons.filter((button) => button.type === "PHONE_NUMBER").length
-  };
-}
-
-function areButtonGroupsValid(buttons: TemplateButton[]) {
-  const groupSequence = buttons.map((button) => (button.type === "QUICK_REPLY" ? "QUICK_REPLY" : "ACTION"));
-  const transitions = groupSequence.reduce((count, group, index) => {
-    if (index === 0) {
-      return count;
-    }
-
-    return group === groupSequence[index - 1] ? count : count + 1;
-  }, 0);
-
-  return transitions <= 1;
+      return false;
+    })
+  );
 }

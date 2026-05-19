@@ -3,9 +3,10 @@ import { BODY_TEXT_MAX_LENGTH } from "../../constants/template.constants";
 type BodyEditorProps = {
   value: string;
   onChange: (value: string) => void;
+  error?: string | undefined;
 };
 
-export function BodyEditor({ value, onChange }: BodyEditorProps) {
+export function BodyEditor({ value, onChange, error }: BodyEditorProps) {
   return (
     <section className="space-y-1.5">
       <label className="text-sm font-medium text-text-muted" htmlFor="template-body-text">
@@ -22,6 +23,7 @@ export function BodyEditor({ value, onChange }: BodyEditorProps) {
       <p className="text-xs text-text-subtle">
         {value.length}/{BODY_TEXT_MAX_LENGTH} · Use variables like {"{{1}}"}.
       </p>
+      {error ? <p className="text-xs text-error">{error}</p> : null}
     </section>
   );
 }

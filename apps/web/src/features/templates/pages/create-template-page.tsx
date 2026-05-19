@@ -11,8 +11,16 @@ import { useCreateTemplatePageState } from "../hooks/useCreateTemplatePageState"
 
 export function CreateTemplatePage() {
   const pageState = useCreateTemplatePageState();
-  const { canSubmit, checklist, createTemplate, detectedVariables, feedback, formValues, updateSampleValue } =
-    pageState;
+  const {
+    canSubmit,
+    checklist,
+    createTemplate,
+    detectedVariables,
+    feedback,
+    formValues,
+    updateSampleValue,
+    visibleErrors
+  } = pageState;
 
   return (
     <section aria-labelledby="create-template-title" className="space-y-5">
@@ -44,6 +52,7 @@ export function CreateTemplatePage() {
               onDisplayNameChange={pageState.updateDisplayName}
               onCategoryChange={pageState.updateCategory}
               onLanguageCodeChange={pageState.updateLanguageCode}
+              errors={visibleErrors}
             />
             <TemplateMessageSection
               headerFormat={formValues.headerFormat}
@@ -54,12 +63,18 @@ export function CreateTemplatePage() {
               onHeaderTextChange={pageState.updateHeaderText}
               onBodyTextChange={pageState.updateBodyText}
               onFooterTextChange={pageState.updateFooterText}
+              errors={visibleErrors}
             />
-            <ButtonEditor buttons={formValues.buttons} onButtonsChange={pageState.updateButtons} />
+            <ButtonEditor
+              buttons={formValues.buttons}
+              onButtonsChange={pageState.updateButtons}
+              errors={visibleErrors}
+            />
             <VariableMappingPanel
               variables={detectedVariables}
               sampleValues={formValues.variableSamples}
               onSampleValueChange={updateSampleValue}
+              errors={visibleErrors}
             />
             <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:items-center sm:justify-end">
               <Button className="w-full sm:w-auto" type="button" variant="ghost" onClick={pageState.cancel}>
