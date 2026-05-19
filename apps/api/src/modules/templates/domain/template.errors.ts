@@ -39,3 +39,15 @@ export class TemplateUnsupportedTypeError extends TemplateDomainError {
     super(400, "Template type is not supported yet.", TEMPLATE_ERROR_CODES.UNSUPPORTED_TYPE);
   }
 }
+
+export class TemplateProviderApiError extends TemplateDomainError {
+  constructor(message = "Template provider request failed.") {
+    super(502, message, TEMPLATE_ERROR_CODES.PROVIDER_ERROR);
+  }
+}
+
+export class TemplateSyncFailedError extends TemplateDomainError {
+  constructor(message = "Template sync failed.") {
+    super(502, message, TEMPLATE_ERROR_CODES.SYNC_FAILED);
+  }
+}

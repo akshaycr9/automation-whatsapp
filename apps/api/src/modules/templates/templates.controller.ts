@@ -49,8 +49,8 @@ export class TemplatesController {
     res.json(result);
   };
 
-  sync = async (_req: Request, res: Response) => {
-    res.json(this.templatesService.getSyncPlaceholder());
+  sync = async (req: Request, res: Response) => {
+    res.json(await this.templatesService.syncTemplates(this.getScope(req)));
   };
 
   private parseListQuery(query: Request["query"]): TemplateListQuery {

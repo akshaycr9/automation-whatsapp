@@ -2,6 +2,7 @@ import {
   PrismaClient,
   TemplateEventType,
   TemplateProvider,
+  type TemplateQualityRating,
   type TemplateCategory,
   type TemplateProviderAction,
   type TemplateStatus,
@@ -12,6 +13,7 @@ import type { PreparedTemplateCreateData, TemplateListQuery, TemplateScope } fro
 type TemplateWhereInput = {
   id?: string;
   adminUserId?: string;
+  metaTemplateId?: string;
   name?: string;
   languageCode?: string;
   deletedAt?: null;
@@ -43,7 +45,8 @@ type TemplateDelegate = {
 };
 
 type ProviderPayloadDelegate = {
-  create(args: { data: unknown }): Promise<unknown>;
+  create(args: { data: unknown }): Promise<{ id: string }>;
+  update(args: { where: { id: string }; data: unknown }): Promise<unknown>;
 };
 
 type EventDelegate = {
@@ -196,6 +199,31 @@ export class TemplateRepository {
     return this.findById(id, scope);
   }
 
+  async updateProviderSubmissionResult(
+    id: string,
+    data: {
+      metaTemplateId?: string | null;
+      status: TemplateStatus;
+      rejectionReason?: string | null;
+      lastSyncedAt?: Date | null;
+    },
+    scope: TemplateScope
+  ) {
+    await this.db.whatsAppTemplate.updateMany({
+      where: {
+        id,
+        adminUserId: scope.adminUserId,
+        deletedAt: null
+      },
+      data: {
+        ...data,
+        updatedById: scope.adminUserId
+      }
+    });
+
+    return this.findById(id, scope);
+  }
+
   softDelete(id: string, scope: TemplateScope) {
     return this.db.whatsAppTemplate.updateMany({
       where: {
@@ -226,6 +254,89 @@ export class TemplateRepository {
         provider: data.provider ?? TemplateProvider.META,
         ...data
       }
+    });
+  }
+
+  updateProviderPayload(
+    id: string,
+    data: {
+      responsePayload?: unknown;
+      statusCode?: number | null;
+      errorCode?: string | null;
+      errorMessage?: string | null;
+    }
+  ) {
+    return this.db.whatsAppTemplateProviderPayload.update({
+      where: { id },
+      data
+    });
+  }
+
+  findByProviderIdentity(
+    input: { metaTemplateId?: string | null; name: string; languageCode: string },
+    scope: TemplateScope
+  ) {
+    if (input.metaTemplateId) {
+      return this.db.whatsAppTemplate.findFirst({
+        where: {
+          adminUserId: scope.adminUserId,
+          metaTemplateId: input.metaTemplateId,
+          deletedAt: null
+        },
+        include: detailInclude
+      });
+    }
+
+    return this.findByNameAndLanguage(input.name, input.languageCode, scope);
+  }
+
+  async updateFromProvider(
+    id: string,
+    data: {
+      metaTemplateId?: string | null;
+      category: TemplateCategory;
+      type: TemplateType;
+      languageCode: string;
+      status: TemplateStatus;
+      qualityRating: TemplateQualityRating;
+      rejectionReason?: string | null;
+      lastSyncedAt: Date;
+    },
+    scope: TemplateScope
+  ) {
+    await this.db.whatsAppTemplate.updateMany({
+      where: {
+        id,
+        adminUserId: scope.adminUserId,
+        deletedAt: null
+      },
+      data
+    });
+
+    return this.findById(id, scope);
+  }
+
+  createFromProvider(
+    data: {
+      metaTemplateId?: string | null;
+      name: string;
+      displayName?: string | null;
+      category: TemplateCategory;
+      type: TemplateType;
+      languageCode: string;
+      status: TemplateStatus;
+      qualityRating: TemplateQualityRating;
+      rejectionReason?: string | null;
+      lastSyncedAt: Date;
+    },
+    scope: TemplateScope
+  ) {
+    return this.db.whatsAppTemplate.create({
+      data: {
+        ...data,
+        adminUserId: scope.adminUserId
+      },
+      include: detailInclude
     });
   }
 
