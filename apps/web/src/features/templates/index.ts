@@ -6,6 +6,7 @@ export { useCreateTemplate } from "./hooks/useCreateTemplate";
 export { useSyncTemplates } from "./hooks/useSyncTemplates";
 export { useTemplate } from "./hooks/useTemplate";
 export { useTemplates } from "./hooks/useTemplates";
+export { templateKeys } from "./hooks/templateKeys";
 
 export type {
   CreateTemplateFormValues,

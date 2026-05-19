@@ -1,6 +1,30 @@
 import { mockTemplates } from "../data/mockTemplates";
 import type { CreateTemplatePayload, Template, TemplateListFilters } from "../types/template.types";
 
+export type TemplateListResponse = {
+  data: Template[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+  };
+};
+
+export type TemplateDetailResponse = {
+  data: Template;
+};
+
+export type CreateTemplateResponse = {
+  data: Template;
+  message: string;
+};
+
+export type SyncTemplatesResponse = {
+  data: Template[];
+  message: string;
+  syncedAt: string;
+};
+
 function applyTemplateFilters(templates: Template[], filters: TemplateListFilters = {}) {
   const search = filters.search?.trim().toLowerCase();
 
@@ -18,15 +42,30 @@ function applyTemplateFilters(templates: Template[], filters: TemplateListFilter
 }
 
 export const templateApi = {
-  async getTemplates(filters: TemplateListFilters = {}) {
-    return Promise.resolve(applyTemplateFilters(mockTemplates, filters));
+  async getTemplates(filters: TemplateListFilters = {}): Promise<TemplateListResponse> {
+    const filteredTemplates = applyTemplateFilters(mockTemplates, filters);
+
+    return Promise.resolve({
+      data: filteredTemplates,
+      pagination: {
+        page: 1,
+        limit: filteredTemplates.length,
+        total: filteredTemplates.length
+      }
+    });
   },
 
-  async getTemplateById(id: string) {
-    return Promise.resolve(mockTemplates.find((template) => template.id === id) ?? null);
+  async getTemplateById(id: string): Promise<TemplateDetailResponse> {
+    const template = mockTemplates.find((template) => template.id === id);
+
+    if (!template) {
+      throw new Error("Template not found.");
+    }
+
+    return Promise.resolve({ data: template });
   },
 
-  async createTemplate(payload: CreateTemplatePayload) {
+  async createTemplate(payload: CreateTemplatePayload): Promise<CreateTemplateResponse> {
     if (!payload.category) {
       throw new Error("Template category is required.");
     }
@@ -44,10 +83,17 @@ export const templateApi = {
       updatedAt: now
     };
 
-    return Promise.resolve(template);
+    return Promise.resolve({
+      data: template,
+      message: "Template created successfully"
+    });
   },
 
-  async syncTemplates() {
-    return Promise.resolve({ syncedAt: new Date().toISOString(), templates: mockTemplates });
+  async syncTemplates(): Promise<SyncTemplatesResponse> {
+    return Promise.resolve({
+      data: mockTemplates,
+      message: "Templates synced successfully",
+      syncedAt: new Date().toISOString()
+    });
   }
 };
