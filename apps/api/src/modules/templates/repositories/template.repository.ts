@@ -71,6 +71,7 @@ export type TemplateRecord = {
   status: TemplateStatus;
   qualityRating: "GREEN" | "YELLOW" | "RED" | "UNKNOWN";
   rejectionReason: string | null;
+  allowCategoryChange: boolean;
   lastSyncedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -290,10 +291,67 @@ export class TemplateRepository {
     return this.findByNameAndLanguage(input.name, input.languageCode, scope);
   }
 
+  findByWebhookIdentity(input: {
+    metaTemplateId?: string | null;
+    name?: string | null;
+    languageCode?: string | null;
+    wabaId?: string | null;
+  }) {
+    if (input.metaTemplateId) {
+      return this.db.whatsAppTemplate.findFirst({
+        where: {
+          metaTemplateId: input.metaTemplateId,
+          ...(input.wabaId ? { wabaId: input.wabaId } : {}),
+          deletedAt: null
+        },
+        include: detailInclude
+      });
+    }
+
+    if (!input.name || !input.languageCode) return Promise.resolve(null);
+
+    return this.db.whatsAppTemplate.findFirst({
+      where: {
+        name: input.name,
+        languageCode: input.languageCode,
+        ...(input.wabaId ? { wabaId: input.wabaId } : {}),
+        deletedAt: null
+      },
+      include: detailInclude
+    });
+  }
+
+  async updateFromWebhook(
+    id: string,
+    data: {
+      status?: TemplateStatus;
+      qualityRating?: TemplateQualityRating;
+      rejectionReason?: string | null;
+      lastSyncedAt: Date;
+    }
+  ) {
+    await this.db.whatsAppTemplate.updateMany({
+      where: {
+        id,
+        deletedAt: null
+      },
+      data
+    });
+
+    return this.db.whatsAppTemplate.findFirst({
+      where: {
+        id,
+        deletedAt: null
+      },
+      include: detailInclude
+    });
+  }
+
   async updateFromProvider(
     id: string,
     data: {
       metaTemplateId?: string | null;
+      wabaId?: string | null;
       category: TemplateCategory;
       type: TemplateType;
       languageCode: string;
@@ -319,6 +377,7 @@ export class TemplateRepository {
   createFromProvider(
     data: {
       metaTemplateId?: string | null;
+      wabaId?: string | null;
       name: string;
       displayName?: string | null;
       category: TemplateCategory;

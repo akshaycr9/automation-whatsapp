@@ -1,6 +1,6 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { renderWithProviders } from "@/test/test-utils";
 import { server } from "@/test/mocks/server";
@@ -8,8 +8,9 @@ import { TemplateCategoryBadge } from "../components/TemplateList/TemplateCatego
 import { TemplateStatusBadge } from "../components/TemplateList/TemplateStatusBadge";
 import { mockTemplates } from "../data/mockTemplates";
 import { TemplatesListPage } from "../pages/templates-page";
+import type { Template } from "../types/template.types";
 
-function renderTemplatesList() {
+function renderTemplatesList(templates = mockTemplates) {
   server.use(
     http.post("http://localhost:4000/api/auth/refresh", () =>
       HttpResponse.json({
@@ -21,8 +22,8 @@ function renderTemplatesList() {
     ),
     http.get("http://localhost:4000/api/templates", () =>
       HttpResponse.json({
-        data: mockTemplates,
-        pagination: { page: 1, limit: mockTemplates.length, total: mockTemplates.length, totalPages: 1 }
+        data: templates,
+        pagination: { page: 1, limit: templates.length, total: templates.length, totalPages: 1 }
       })
     ),
     http.post("http://localhost:4000/api/templates/sync", () =>
@@ -137,12 +138,50 @@ it("renders sync actions and created dates", async () => {
 
 it("shows syncing feedback for the clicked template", async () => {
   const user = userEvent.setup();
+  let syncCalled = false;
+  server.use(
+    http.post("http://localhost:4000/api/templates/tmpl_delivery_update_v1/sync", async () => {
+      syncCalled = true;
+      await delay(100);
+      return HttpResponse.json({
+        data: { ...mockTemplates[1], status: "APPROVED" },
+        message: "Template synced successfully"
+      });
+    })
+  );
   renderTemplatesList();
 
   await screen.findAllByText("Order confirmation");
   await user.click(screen.getAllByRole("button", { name: "Sync" })[0]!);
 
   expect(screen.getAllByRole("button", { name: "Syncing" })).toHaveLength(2);
+  expect(syncCalled).toBe(true);
+});
+
+it("shows retry action for error templates and calls retry API", async () => {
+  const user = userEvent.setup();
+  let retryCalled = false;
+  server.use(
+    http.post("http://localhost:4000/api/templates/tmpl_error/retry-submission", () => {
+      retryCalled = true;
+      return HttpResponse.json({
+        data: { ...mockTemplates[0], id: "tmpl_error", status: "PENDING" },
+        message: "Template resubmitted to Meta."
+      });
+    })
+  );
+  const errorTemplate: Template = {
+    ...mockTemplates[0]!,
+    id: "tmpl_error",
+    status: "ERROR",
+    rejectionReason: "Meta unavailable"
+  };
+  renderTemplatesList([errorTemplate]);
+
+  expect(await screen.findAllByText("Meta unavailable")).toHaveLength(2);
+  await user.click(screen.getAllByRole("button", { name: "Retry template submission" })[0]!);
+
+  expect(retryCalled).toBe(true);
 });
 
 it("renders status and category badges", () => {

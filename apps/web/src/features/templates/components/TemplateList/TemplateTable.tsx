@@ -8,20 +8,24 @@ import { TemplateTypeBadge } from "./TemplateTypeBadge";
 
 type TemplateTableProps = {
   templates: Template[];
+  retryingTemplateId?: string | null;
   syncingTemplateId?: string | null;
   onViewTemplate: (templateId: string) => void;
   onSyncTemplate: (templateId: string) => void;
   onDuplicateTemplate: (templateId: string) => void;
   onDeleteTemplate: (templateId: string) => void;
+  onRetrySubmission: (templateId: string) => void;
 };
 
 export function TemplateTable({
   templates,
+  retryingTemplateId,
   syncingTemplateId,
   onViewTemplate,
   onSyncTemplate,
   onDuplicateTemplate,
-  onDeleteTemplate
+  onDeleteTemplate,
+  onRetrySubmission
 }: TemplateTableProps) {
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
@@ -62,6 +66,7 @@ export function TemplateTable({
           <tbody>
             {templates.map((template) => {
               const isSyncing = syncingTemplateId === template.id;
+              const isRetrying = retryingTemplateId === template.id;
               const canSync = template.status !== "DRAFT";
 
               return (
@@ -122,9 +127,12 @@ export function TemplateTable({
                   </td>
                   <td className="border-b border-border px-4 py-4">
                     <TemplateRowActions
+                      canRetrySubmission={template.status === "ERROR"}
+                      isRetrying={isRetrying}
                       templateId={template.id}
                       onDuplicateTemplate={onDuplicateTemplate}
                       onDeleteTemplate={onDeleteTemplate}
+                      onRetrySubmission={onRetrySubmission}
                     />
                   </td>
                 </tr>
@@ -137,6 +145,7 @@ export function TemplateTable({
       <div className="divide-y divide-border md:hidden">
         {templates.map((template) => {
           const isSyncing = syncingTemplateId === template.id;
+          const isRetrying = retryingTemplateId === template.id;
           const canSync = template.status !== "DRAFT";
 
           return (
@@ -192,9 +201,12 @@ export function TemplateTable({
                   <span className="text-xs text-text-subtle">Drafts sync after submission</span>
                 )}
                 <TemplateRowActions
+                  canRetrySubmission={template.status === "ERROR"}
+                  isRetrying={isRetrying}
                   templateId={template.id}
                   onDuplicateTemplate={onDuplicateTemplate}
                   onDeleteTemplate={onDeleteTemplate}
+                  onRetrySubmission={onRetrySubmission}
                 />
               </div>
             </article>

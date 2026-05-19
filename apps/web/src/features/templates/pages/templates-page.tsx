@@ -7,6 +7,8 @@ import { TemplateListSkeleton } from "../components/TemplateList/TemplateListSke
 import { TemplateListToolbar } from "../components/TemplateList/TemplateListToolbar";
 import { TemplateTable } from "../components/TemplateList/TemplateTable";
 import { useDeleteTemplate } from "../hooks/useDeleteTemplate";
+import { useRetryTemplateSubmission } from "../hooks/useRetryTemplateSubmission";
+import { useSyncTemplate } from "../hooks/useSyncTemplate";
 import { useSyncTemplates } from "../hooks/useSyncTemplates";
 import { useTemplates } from "../hooks/useTemplates";
 import { useTemplatesListPageState } from "../hooks/useTemplatesListPageState";
@@ -14,6 +16,8 @@ import { useTemplatesListPageState } from "../hooks/useTemplatesListPageState";
 export function TemplatesListPage() {
   const templatesQuery = useTemplates();
   const syncTemplates = useSyncTemplates();
+  const syncTemplate = useSyncTemplate();
+  const retryTemplateSubmission = useRetryTemplateSubmission();
   const deleteTemplate = useDeleteTemplate();
   const templates = templatesQuery.data ?? [];
   const listState = useTemplatesListPageState(templates);
@@ -59,10 +63,12 @@ export function TemplatesListPage() {
         {templatesQuery.isSuccess && listState.filteredTemplates.length > 0 ? (
           <TemplateTable
             templates={listState.filteredTemplates}
-            syncingTemplateId={listState.syncingTemplateId}
+            retryingTemplateId={retryTemplateSubmission.isPending ? (retryTemplateSubmission.variables ?? null) : null}
+            syncingTemplateId={syncTemplate.isPending ? (syncTemplate.variables ?? null) : null}
             onViewTemplate={listState.viewTemplate}
-            onSyncTemplate={listState.syncTemplate}
+            onSyncTemplate={(templateId) => syncTemplate.mutate(templateId)}
             onDuplicateTemplate={(templateId) => listState.runPlaceholderAction("duplicate", templateId)}
+            onRetrySubmission={(templateId) => retryTemplateSubmission.mutate(templateId)}
             onDeleteTemplate={(templateId) => {
               if (window.confirm("Delete this template locally?")) {
                 deleteTemplate.mutate(templateId);

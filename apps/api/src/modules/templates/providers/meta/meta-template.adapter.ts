@@ -2,10 +2,11 @@ import { TemplateProvider } from "@prisma/client";
 import type {
   ProviderCreateTemplateInput,
   ProviderListTemplatesInput,
+  ProviderTemplateResult,
   TemplateProviderAdapter
 } from "../template-provider.adapter.js";
 import { TemplateProviderError } from "./meta-template.errors.js";
-import { mapMetaCreateResponse, mapMetaListResponse } from "./meta-template.mapper.js";
+import { mapMetaCreateResponse, mapMetaGetResponse, mapMetaListResponse } from "./meta-template.mapper.js";
 import type { MetaListTemplatesResponse, MetaTemplateResponse } from "./meta-template.types.js";
 
 type FetchLike = typeof fetch;
@@ -36,8 +37,25 @@ export class MetaTemplateAdapter implements TemplateProviderAdapter {
     return mapMetaListResponse(response.body, response.statusCode);
   }
 
+  async getTemplate(
+    input: ProviderListTemplatesInput & { providerTemplateId: string }
+  ): Promise<ProviderTemplateResult> {
+    const response = await this.request<MetaTemplateResponse>(
+      this.templateUrl(input.credentials.graphApiVersion, input.providerTemplateId),
+      input.credentials.accessToken,
+      { method: "GET" }
+    );
+
+    return mapMetaGetResponse(response.body, response.statusCode);
+  }
+
   private templatesUrl(version: string, wabaId: string) {
     return `https://graph.facebook.com/${version}/${wabaId}/message_templates`;
+  }
+
+  private templateUrl(version: string, providerTemplateId: string) {
+    const fields = "id,name,language,category,status,quality_score,rejected_reason,components";
+    return `https://graph.facebook.com/${version}/${providerTemplateId}?fields=${fields}`;
   }
 
   private async request<T>(
