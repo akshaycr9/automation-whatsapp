@@ -1,4 +1,4 @@
-import { BODY_TEXT_MAX_LENGTH } from "../constants/template.constants";
+import { BODY_TEXT_MAX_LENGTH, TEMPLATE_LANGUAGE_OPTIONS } from "../constants/template.constants";
 
 export function isValidTemplateName(name: string) {
   return /^[a-z0-9_]+$/.test(name.trim());
@@ -10,5 +10,5 @@ export function isValidTemplateBody(body: string) {
 }
 
 export function isValidLanguageCode(languageCode: string) {
-  return /^[a-z]{2}(?:_[A-Z]{2})?$/.test(languageCode.trim());
+  return TEMPLATE_LANGUAGE_OPTIONS.some((option) => option.code === languageCode.trim());
 }
