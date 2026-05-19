@@ -13,7 +13,8 @@ import type { CreateTemplateInput, TemplateListQuery, TemplateScope } from "../d
 import { validateCreateTemplateInput } from "../domain/template.validators.js";
 import {
   isKnownMetaTemplateStatus,
-  mapCreateTemplateInputToMetaPayload
+  mapCreateTemplateInputToMetaPayload,
+  mapTemplateRecordToMetaPayload
 } from "../providers/meta/meta-template.mapper.js";
 import { MetaTemplateAdapter } from "../providers/meta/meta-template.adapter.js";
 import { MetaTemplateCredentialResolver } from "../providers/meta/meta-template-credentials.js";
@@ -170,6 +171,136 @@ export class TemplateDomainService {
       },
       message: "Template deleted successfully"
     };
+  }
+
+  async retrySubmission(id: string, context: TemplateScope) {
+    const template = await this.repository.findById(id, context);
+
+    if (!template) {
+      throw new TemplateNotFoundError();
+    }
+
+    const credentials = this.credentialResolver.resolve(context);
+    const syncedAt = new Date();
+
+    try {
+      const providerResult = await this.providerAdapter.listTemplates({ credentials });
+      const providerTemplate = providerResult.templates.find(
+        (candidate) => candidate.name === template.name && candidate.languageCode === template.languageCode
+      );
+
+      if (providerTemplate) {
+        const updated = await this.repository.updateFromProvider(
+          template.id,
+          {
+            metaTemplateId: providerTemplate.providerTemplateId,
+            wabaId: credentials.wabaId,
+            category: providerTemplate.category,
+            type: providerTemplate.type,
+            languageCode: providerTemplate.languageCode,
+            status: providerTemplate.status,
+            qualityRating: providerTemplate.qualityRating,
+            rejectionReason: providerTemplate.rejectionReason,
+            lastSyncedAt: syncedAt
+          },
+          context
+        );
+
+        await this.repository.createProviderPayload({
+          templateId: template.id,
+          action: TemplateProviderAction.SYNC,
+          requestPayload: {
+            operation: "retrySubmission.reconcile",
+            name: template.name,
+            languageCode: template.languageCode
+          },
+          responsePayload: providerTemplate.raw,
+          statusCode: providerResult.statusCode
+        });
+        await this.createProviderStatusEvents({
+          templateId: template.id,
+          oldStatus: template.status,
+          newStatus: providerTemplate.status,
+          source: "sync",
+          metadata: { retrySubmission: true, matchedOn: "name_language" },
+          createdById: context.adminUserId
+        });
+
+        return {
+          data: mapTemplateToDetailResponse(updated ?? template),
+          message: "Template reconciled with Meta."
+        };
+      }
+
+      const payload = mapTemplateRecordToMetaPayload(template);
+      const payloadRecord = await this.repository.createProviderPayload({
+        templateId: template.id,
+        action: TemplateProviderAction.CREATE,
+        requestPayload: payload
+      });
+
+      await this.repository.updateProviderSubmissionResult(template.id, { status: TemplateStatus.SUBMITTING }, context);
+      const createResult = await this.providerAdapter.createTemplate({ credentials, payload });
+      await this.repository.updateProviderPayload(payloadRecord.id, {
+        responsePayload: createResult.raw,
+        statusCode: createResult.statusCode
+      });
+
+      const updated = await this.repository.updateProviderSubmissionResult(
+        template.id,
+        {
+          metaTemplateId: createResult.providerTemplateId,
+          status: createResult.status,
+          lastSyncedAt: syncedAt
+        },
+        context
+      );
+
+      await this.repository.createEvent({
+        templateId: template.id,
+        eventType: TemplateEventType.SUBMITTED,
+        oldStatus: template.status,
+        newStatus: createResult.status,
+        message: "Template resubmitted to Meta.",
+        metadata: { retrySubmission: true },
+        createdById: context.adminUserId
+      });
+
+      return {
+        data: mapTemplateToDetailResponse(updated ?? template),
+        message: "Template resubmitted to Meta."
+      };
+    } catch (error) {
+      const providerError = this.normalizeProviderError(error);
+      await this.repository.updateProviderSubmissionResult(
+        template.id,
+        {
+          status: TemplateStatus.ERROR,
+          rejectionReason: providerError.message,
+          lastSyncedAt: new Date()
+        },
+        context
+      );
+      await this.repository.createProviderPayload({
+        templateId: template.id,
+        action: TemplateProviderAction.CREATE,
+        requestPayload: { operation: "retrySubmission", templateId: template.id },
+        responsePayload: providerError.raw,
+        statusCode: providerError.statusCode,
+        errorCode: providerError.code,
+        errorMessage: providerError.message
+      });
+      await this.repository.createEvent({
+        templateId: template.id,
+        eventType: TemplateEventType.ERROR,
+        oldStatus: template.status,
+        newStatus: TemplateStatus.ERROR,
+        message: providerError.message,
+        metadata: { provider: providerError.provider, code: providerError.code, retrySubmission: true },
+        createdById: context.adminUserId
+      });
+      throw new TemplateProviderApiError("Template retry failed. Please try again later.");
+    }
   }
 
   async syncTemplates(context: TemplateScope) {

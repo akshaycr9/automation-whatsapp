@@ -104,3 +104,20 @@ it("returns the sync result from the template service", async () => {
     message: "Templates synced successfully"
   });
 });
+
+it("retries template submission with tenant scope", async () => {
+  const retrySubmission = vi.fn().mockResolvedValue({
+    data: { id: "tmpl_123", status: TemplateStatus.PENDING },
+    message: "Template resubmitted to Meta."
+  });
+  const controller = new TemplatesController({ retrySubmission } as unknown as TemplateDomainService);
+  const res = createResponse();
+
+  await controller.retrySubmission({ params: { id: "tmpl_123" }, auth } as unknown as Request, res);
+
+  expect(retrySubmission).toHaveBeenCalledWith("tmpl_123", { adminUserId: "admin_123" });
+  expect(res.json).toHaveBeenCalledWith({
+    data: { id: "tmpl_123", status: TemplateStatus.PENDING },
+    message: "Template resubmitted to Meta."
+  });
+});

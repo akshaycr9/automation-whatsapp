@@ -76,3 +76,76 @@ it("syncs Meta templates and creates lifecycle events when status changes", asyn
     expect.objectContaining({ eventType: TemplateEventType.APPROVED, oldStatus: TemplateStatus.PENDING })
   );
 });
+
+it("retry submission reconciles an existing Meta template before creating a duplicate", async () => {
+  const localTemplate = {
+    id: "tmpl_123",
+    adminUserId: "admin_123",
+    metaTemplateId: null,
+    name: "order_update",
+    displayName: "Order Update",
+    category: TemplateCategory.UTILITY,
+    type: TemplateType.TEXT,
+    languageCode: "en",
+    status: TemplateStatus.ERROR,
+    qualityRating: TemplateQualityRating.UNKNOWN,
+    rejectionReason: null,
+    allowCategoryChange: false,
+    lastSyncedAt: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    components: [],
+    variables: [],
+    buttons: []
+  };
+  const repository = {
+    findById: vi.fn().mockResolvedValue(localTemplate),
+    updateFromProvider: vi
+      .fn()
+      .mockResolvedValue({ ...localTemplate, metaTemplateId: "meta_123", status: TemplateStatus.PENDING }),
+    createProviderPayload: vi.fn().mockResolvedValue({ id: "payload_123" }),
+    createEvent: vi.fn().mockResolvedValue({})
+  };
+  const providerAdapter = {
+    listTemplates: vi.fn().mockResolvedValue({
+      templates: [
+        {
+          providerTemplateId: "meta_123",
+          name: "order_update",
+          category: TemplateCategory.UTILITY,
+          type: TemplateType.TEXT,
+          languageCode: "en",
+          status: TemplateStatus.PENDING,
+          qualityRating: TemplateQualityRating.UNKNOWN,
+          rejectionReason: null,
+          raw: { id: "meta_123" }
+        }
+      ],
+      raw: { data: [] },
+      statusCode: 200
+    }),
+    createTemplate: vi.fn()
+  };
+  const credentialResolver = {
+    resolve: vi.fn().mockReturnValue({
+      graphApiVersion: "v21.0",
+      wabaId: "waba_123",
+      accessToken: "token"
+    })
+  };
+  const service = new TemplatesService(
+    repository as never,
+    undefined as never,
+    providerAdapter as never,
+    credentialResolver as never
+  );
+
+  await service.retrySubmission("tmpl_123", { adminUserId: "admin_123" });
+
+  expect(providerAdapter.createTemplate).not.toHaveBeenCalled();
+  expect(repository.updateFromProvider).toHaveBeenCalledWith(
+    "tmpl_123",
+    expect.objectContaining({ metaTemplateId: "meta_123", status: TemplateStatus.PENDING }),
+    { adminUserId: "admin_123" }
+  );
+});

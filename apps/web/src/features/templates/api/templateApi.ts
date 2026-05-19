@@ -40,6 +40,11 @@ export type SyncTemplatesResponse = {
   message: string;
 };
 
+export type RetryTemplateSubmissionResponse = {
+  data: Template;
+  message: string;
+};
+
 export type DeleteTemplateResponse = {
   data: {
     id: string;
@@ -116,6 +121,21 @@ export const templateApi = {
     return {
       data: response.data,
       message: (response as unknown as { message?: string }).message ?? "Templates synced successfully"
+    };
+  },
+
+  async retryTemplateSubmission(
+    id: string,
+    options: TemplateApiOptions = {}
+  ): Promise<RetryTemplateSubmissionResponse> {
+    const response = await apiClient.post<BackendTemplate>(
+      `/api/templates/${encodeURIComponent(id)}/retry-submission`,
+      {},
+      requestOptions(options)
+    );
+    return {
+      data: mapBackendTemplateToView(response.data),
+      message: (response as unknown as { message?: string }).message ?? "Template retry submitted successfully"
     };
   },
 

@@ -53,6 +53,10 @@ export class TemplatesController {
     res.json(await this.templatesService.syncTemplates(this.getScope(req)));
   };
 
+  retrySubmission = async (req: Request, res: Response) => {
+    res.json(await this.templatesService.retrySubmission(this.getTemplateId(req), this.getScope(req)));
+  };
+
   private parseListQuery(query: Request["query"]): TemplateListQuery {
     const parsed = listTemplatesQuerySchema.safeParse(query);
 

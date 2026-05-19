@@ -71,6 +71,7 @@ export type TemplateRecord = {
   status: TemplateStatus;
   qualityRating: "GREEN" | "YELLOW" | "RED" | "UNKNOWN";
   rejectionReason: string | null;
+  allowCategoryChange: boolean;
   lastSyncedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;

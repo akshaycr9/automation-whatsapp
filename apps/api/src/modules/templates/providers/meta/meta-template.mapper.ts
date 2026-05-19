@@ -9,6 +9,7 @@ import {
 } from "@prisma/client";
 import type { CreateTemplateInput } from "../../domain/template.types.js";
 import { extractTemplateVariables } from "../../domain/template-variable.validator.js";
+import type { TemplateRecord } from "../../repositories/template.repository.js";
 import type { ProviderTemplateSummary } from "../template-provider.adapter.js";
 import type {
   MetaCreateTemplatePayload,
@@ -78,6 +79,75 @@ export function mapCreateTemplateInputToMetaPayload(input: CreateTemplateInput):
   };
 }
 
+export function mapTemplateRecordToMetaPayload(template: TemplateRecord): MetaCreateTemplatePayload {
+  const components = [...(template.components ?? [])].sort((left, right) => left.sortOrder - right.sortOrder);
+  const header = components.find((component) => component.componentType === TemplateComponentType.HEADER);
+  const body = components.find((component) => component.componentType === TemplateComponentType.BODY);
+  const footer = components.find((component) => component.componentType === TemplateComponentType.FOOTER);
+  const payloadComponents: MetaCreateTemplatePayload["components"] = [];
+
+  if (header?.format === TemplateHeaderFormat.TEXT && header.text?.trim()) {
+    const headerVariables = extractTemplateVariables(header.text, TemplateComponentType.HEADER);
+    const headerSamples = headerVariables.map((variable) =>
+      findRecordSample(template, variable.componentType, variable.position)
+    );
+
+    payloadComponents.push({
+      type: "HEADER",
+      format: "TEXT",
+      text: header.text.trim(),
+      ...(headerSamples.length > 0 ? { example: { header_text: headerSamples } } : {})
+    });
+  }
+
+  const bodyText = body?.text?.trim() ?? "";
+  const bodyVariables = extractTemplateVariables(bodyText, TemplateComponentType.BODY);
+  const bodySamples = bodyVariables.map((variable) =>
+    findRecordSample(template, variable.componentType, variable.position)
+  );
+
+  payloadComponents.push({
+    type: "BODY",
+    text: bodyText,
+    ...(bodySamples.length > 0 ? { example: { body_text: [bodySamples] } } : {})
+  });
+
+  if (footer?.text?.trim()) {
+    payloadComponents.push({
+      type: "FOOTER",
+      text: footer.text.trim()
+    });
+  }
+
+  const buttons = [...(template.buttons ?? [])].sort((left, right) => left.sortOrder - right.sortOrder);
+  if (buttons.length > 0) {
+    payloadComponents.push({
+      type: "BUTTONS",
+      buttons: buttons.map((button) => {
+        if (button.buttonType === TemplateButtonType.URL) {
+          return { type: "URL", text: button.text.trim(), url: button.url?.trim() ?? "" };
+        }
+        if (button.buttonType === TemplateButtonType.PHONE_NUMBER) {
+          return {
+            type: "PHONE_NUMBER",
+            text: button.text.trim(),
+            phone_number: button.phoneNumber?.trim() ?? ""
+          };
+        }
+        return { type: "QUICK_REPLY", text: button.text.trim() };
+      })
+    });
+  }
+
+  return {
+    name: template.name.trim(),
+    language: template.languageCode.trim(),
+    category: template.category,
+    allow_category_change: template.allowCategoryChange,
+    components: payloadComponents
+  };
+}
+
 export function mapMetaCreateResponse(response: MetaTemplateResponse, statusCode: number) {
   return {
     providerTemplateId: response.id ?? null,
@@ -112,6 +182,13 @@ export function mapMetaTemplateSummary(template: MetaTemplateResponse): Provider
 function findSample(input: CreateTemplateInput, componentType: TemplateComponentType, position: number) {
   return (
     input.variables.find((variable) => variable.componentType === componentType && variable.position === position)
+      ?.sampleValue ?? ""
+  );
+}
+
+function findRecordSample(template: TemplateRecord, componentType: TemplateComponentType, position: number) {
+  return (
+    template.variables?.find((variable) => variable.componentType === componentType && variable.position === position)
       ?.sampleValue ?? ""
   );
 }
