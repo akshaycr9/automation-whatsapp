@@ -63,7 +63,7 @@ function record(status: TemplateStatus) {
 
 it("submits created templates to the provider and updates status", async () => {
   const repository = {
-    findByNameAndLanguage: vi.fn().mockResolvedValue(null),
+    findAnyByNameAndLanguage: vi.fn().mockResolvedValue(null),
     createWithRelations: vi.fn().mockResolvedValue(record(TemplateStatus.SUBMITTING)),
     createProviderPayload: vi.fn().mockResolvedValue({ id: "payload_123" }),
     updateProviderPayload: vi.fn().mockResolvedValue({}),
@@ -102,7 +102,7 @@ it("submits created templates to the provider and updates status", async () => {
 
 it("stores provider errors and marks local templates as ERROR", async () => {
   const repository = {
-    findByNameAndLanguage: vi.fn().mockResolvedValue(null),
+    findAnyByNameAndLanguage: vi.fn().mockResolvedValue(null),
     createWithRelations: vi.fn().mockResolvedValue(record(TemplateStatus.SUBMITTING)),
     createProviderPayload: vi.fn().mockResolvedValue({ id: "payload_123" }),
     updateProviderPayload: vi.fn().mockResolvedValue({}),

@@ -70,7 +70,7 @@ export class TemplateDomainService {
   }
 
   async checkDuplicateName(name: string, languageCode: string, context: TemplateScope) {
-    const existing = await this.repository.findByNameAndLanguage(name, languageCode, context);
+    const existing = await this.repository.findAnyByNameAndLanguage(name, languageCode, context);
 
     if (existing) {
       throw new TemplateDuplicateNameError();
@@ -140,7 +140,7 @@ export class TemplateDomainService {
         metadata: { provider: providerError.provider, code: providerError.code, statusCode: providerError.statusCode },
         createdById: context.adminUserId
       });
-      throw new TemplateProviderApiError(providerError.message);
+      throw new TemplateProviderApiError();
     }
   }
 
@@ -508,7 +508,7 @@ export class TemplateDomainService {
         errorCode: providerError.code,
         errorMessage: providerError.message
       });
-      throw new TemplateSyncFailedError(providerError.message);
+      throw new TemplateSyncFailedError("Template sync failed. Please try again later.");
     }
   }
 

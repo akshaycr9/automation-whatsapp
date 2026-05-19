@@ -1,11 +1,13 @@
 import { TemplatesService } from "../templates.service.js";
 import {
   TemplateCategory,
+  TemplateComponentType,
   TemplateEventType,
   TemplateQualityRating,
   TemplateStatus,
   TemplateType
 } from "@prisma/client";
+import { TemplateProviderError } from "../providers/meta/meta-template.errors.js";
 
 it("can construct the templates service placeholder", () => {
   expect(new TemplatesService()).toBeInstanceOf(TemplatesService);
@@ -221,5 +223,85 @@ it("syncs a single template from Meta by provider id", async () => {
     "tmpl_123",
     expect.objectContaining({ status: TemplateStatus.APPROVED, qualityRating: TemplateQualityRating.GREEN }),
     { adminUserId: "admin_123" }
+  );
+});
+
+it("returns a safe provider error when Meta create fails", async () => {
+  const repository = {
+    findAnyByNameAndLanguage: vi.fn().mockResolvedValue(null),
+    createWithRelations: vi.fn().mockResolvedValue({
+      id: "tmpl_123",
+      status: TemplateStatus.SUBMITTING,
+      name: "order_update",
+      languageCode: "en"
+    }),
+    createProviderPayload: vi.fn().mockResolvedValue({ id: "payload_123" }),
+    updateProviderPayload: vi.fn().mockResolvedValue({}),
+    updateProviderSubmissionResult: vi.fn().mockResolvedValue({}),
+    createEvent: vi.fn().mockResolvedValue({})
+  };
+  const factoryResolver = {
+    build: vi.fn().mockReturnValue({
+      template: {
+        name: "order_update",
+        displayName: "Order Update",
+        category: TemplateCategory.UTILITY,
+        type: TemplateType.TEXT,
+        languageCode: "en",
+        status: TemplateStatus.DRAFT,
+        createdById: "admin_123",
+        updatedById: "admin_123"
+      },
+      components: [{ componentType: TemplateComponentType.BODY, text: "Hi {{1}}", sortOrder: 0 }],
+      variables: [{ componentType: TemplateComponentType.BODY, position: 1, placeholder: "{{1}}", sampleValue: "A" }],
+      buttons: [],
+      event: { eventType: TemplateEventType.CREATED, newStatus: TemplateStatus.DRAFT, createdById: "admin_123" }
+    })
+  };
+  const providerAdapter = {
+    createTemplate: vi.fn().mockRejectedValue(
+      new TemplateProviderError({
+        provider: "META",
+        code: "190",
+        message: "Sensitive provider token error",
+        statusCode: 400,
+        raw: { error: { message: "Sensitive provider token error" } }
+      })
+    )
+  };
+  const credentialResolver = {
+    resolve: vi.fn().mockReturnValue({
+      graphApiVersion: "v21.0",
+      wabaId: "waba_123",
+      accessToken: "secret-token"
+    })
+  };
+  const service = new TemplatesService(
+    repository as never,
+    factoryResolver as never,
+    providerAdapter as never,
+    credentialResolver as never
+  );
+
+  await expect(
+    service.createLocalTemplate(
+      {
+        name: "order_update",
+        displayName: "Order Update",
+        category: TemplateCategory.UTILITY,
+        type: TemplateType.TEXT,
+        languageCode: "en",
+        components: { body: { text: "Hi {{1}}" }, buttons: [] },
+        variables: [{ componentType: TemplateComponentType.BODY, position: 1, placeholder: "{{1}}", sampleValue: "A" }]
+      },
+      { adminUserId: "admin_123" }
+    )
+  ).rejects.toMatchObject({
+    code: "TEMPLATE_PROVIDER_ERROR",
+    message: "Template provider request failed."
+  });
+  expect(repository.updateProviderPayload).toHaveBeenCalledWith(
+    "payload_123",
+    expect.objectContaining({ errorMessage: "Sensitive provider token error" })
   );
 });

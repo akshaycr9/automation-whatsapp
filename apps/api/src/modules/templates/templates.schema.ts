@@ -16,6 +16,7 @@ export const TEMPLATE_STATUSES = [
 export const TEMPLATE_COMPONENT_TYPES = ["HEADER", "BODY", "FOOTER", "BUTTONS", "CAROUSEL"] as const;
 export const TEMPLATE_HEADER_FORMATS = ["NONE", "TEXT", "IMAGE", "VIDEO", "DOCUMENT"] as const;
 export const TEMPLATE_BUTTON_TYPES = ["QUICK_REPLY", "URL", "PHONE_NUMBER", "COPY_CODE", "FLOW"] as const;
+export const TEXT_TEMPLATE_BUTTON_TYPES = ["QUICK_REPLY", "URL", "PHONE_NUMBER"] as const;
 export const TEMPLATE_QUALITY_RATINGS = ["GREEN", "YELLOW", "RED", "UNKNOWN"] as const;
 
 export const TEMPLATE_SORT_FIELDS = ["createdAt", "updatedAt", "name", "status", "category"] as const;
@@ -32,6 +33,7 @@ export const templateStatusSchema = z.enum(TEMPLATE_STATUSES);
 export const templateComponentTypeSchema = z.enum(TEMPLATE_COMPONENT_TYPES);
 export const templateHeaderFormatSchema = z.enum(TEMPLATE_HEADER_FORMATS);
 export const templateButtonTypeSchema = z.enum(TEMPLATE_BUTTON_TYPES);
+export const textTemplateButtonTypeSchema = z.enum(TEXT_TEMPLATE_BUTTON_TYPES);
 export const templateQualityRatingSchema = z.enum(TEMPLATE_QUALITY_RATINGS);
 
 export const listTemplatesQuerySchema = z.object({
@@ -61,26 +63,18 @@ export const templateFooterComponentSchema = z.object({
 
 export const templateButtonSchema = z.discriminatedUnion("type", [
   z.object({
-    type: z.literal("QUICK_REPLY"),
+    type: z.literal(textTemplateButtonTypeSchema.enum.QUICK_REPLY),
     text: z.string().trim().min(1).max(BUTTON_TEXT_MAX_LENGTH)
   }),
   z.object({
-    type: z.literal("URL"),
+    type: z.literal(textTemplateButtonTypeSchema.enum.URL),
     text: z.string().trim().min(1).max(BUTTON_TEXT_MAX_LENGTH),
     url: z.string().trim().url()
   }),
   z.object({
-    type: z.literal("PHONE_NUMBER"),
+    type: z.literal(textTemplateButtonTypeSchema.enum.PHONE_NUMBER),
     text: z.string().trim().min(1).max(BUTTON_TEXT_MAX_LENGTH),
     phoneNumber: z.string().trim().min(1)
-  }),
-  z.object({
-    type: z.literal("COPY_CODE"),
-    text: z.string().trim().min(1).max(BUTTON_TEXT_MAX_LENGTH)
-  }),
-  z.object({
-    type: z.literal("FLOW"),
-    text: z.string().trim().min(1).max(BUTTON_TEXT_MAX_LENGTH)
   })
 ]);
 
