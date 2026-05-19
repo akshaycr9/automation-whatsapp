@@ -7,6 +7,7 @@ import { errorHandler } from "./middleware/error-handler.js";
 import { notFound } from "./middleware/not-found.js";
 import { requestLogger } from "./middleware/request-logger.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
+import { templatesRoutes } from "./modules/templates/templates.routes.js";
 
 function isAllowedDevOrigin(origin: string) {
   return /^http:\/\/(localhost|127\.0\.0\.1|\d{1,3}(?:\.\d{1,3}){3}):5173$/.test(origin);
@@ -38,6 +39,7 @@ export function createApp() {
   });
 
   app.use("/api/auth", authRoutes);
+  app.use("/api/templates", templatesRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

@@ -47,8 +47,8 @@ export const listTemplatesQuerySchema = z.object({
 });
 
 export const templateHeaderComponentSchema = z.object({
-  format: z.literal("TEXT"),
-  text: z.string().trim().min(1).max(HEADER_TEXT_MAX_LENGTH)
+  format: z.enum(["NONE", "TEXT"]),
+  text: z.string().trim().max(HEADER_TEXT_MAX_LENGTH).optional()
 });
 
 export const templateBodyComponentSchema = z.object({
@@ -106,7 +106,7 @@ export const createTemplateBodySchema = z.object({
     .regex(/^[a-z0-9_]+$/),
   displayName: z.string().trim().min(1),
   category: templateCategorySchema,
-  type: z.literal("TEXT"),
+  type: templateTypeSchema,
   languageCode: z.string().trim().min(1),
   components: templateComponentsContractSchema,
   variables: z.array(templateVariableContractSchema)

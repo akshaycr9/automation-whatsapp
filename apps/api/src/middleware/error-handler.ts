@@ -4,7 +4,14 @@ import { logger } from "../lib/logger.js";
 
 export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (error instanceof HttpError) {
-    res.status(error.statusCode).json({ error: { code: error.code, message: error.message } });
+    const details = "details" in error ? error.details : undefined;
+    res.status(error.statusCode).json({
+      error: {
+        code: error.code,
+        message: error.message,
+        ...(Array.isArray(details) ? { details } : {})
+      }
+    });
     return;
   }
 
