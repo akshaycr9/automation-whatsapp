@@ -51,3 +51,7 @@ export function areVariablesSequential(variables: Array<TemplateVariable | strin
 
   return indexes.every((index, position) => index === position + 1);
 }
+
+export function replaceVariablesWithSamples(text: string, sampleValues: Record<string, string>) {
+  return text.replace(TEMPLATE_VARIABLE_PATTERN, (token) => sampleValues[token] || token);
+}

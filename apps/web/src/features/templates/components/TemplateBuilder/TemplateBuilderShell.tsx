@@ -1,7 +1,9 @@
-export function TemplateBuilderShell() {
-  return (
-    <div className="rounded-lg border border-dashed border-border bg-surface-2 p-4 text-sm text-text-muted">
-      Template builder shell placeholder.
-    </div>
-  );
+import type { ReactNode } from "react";
+
+type TemplateBuilderShellProps = {
+  children: ReactNode;
+};
+
+export function TemplateBuilderShell({ children }: TemplateBuilderShellProps) {
+  return <div className="space-y-4">{children}</div>;
 }

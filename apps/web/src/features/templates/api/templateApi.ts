@@ -27,6 +27,10 @@ export const templateApi = {
   },
 
   async createTemplate(payload: CreateTemplatePayload) {
+    if (!payload.category) {
+      throw new Error("Template category is required.");
+    }
+
     const now = new Date().toISOString();
     const template: Template = {
       id: `tmpl_${payload.name}`,

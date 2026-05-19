@@ -70,7 +70,7 @@ export type TemplateListFilters = {
 export type CreateTemplateFormValues = {
   name: string;
   displayName: string;
-  category: TemplateCategory;
+  category: TemplateCategory | "";
   type: TemplateType;
   languageCode: string;
   headerFormat: TemplateHeaderFormat;
