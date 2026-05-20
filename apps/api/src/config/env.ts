@@ -15,15 +15,11 @@ const envSchema = z.object({
   BCRYPT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().optional(),
-  META_GRAPH_API_VERSION: z.string().default("v21.0"),
-  META_WABA_ID: z.string().optional(),
   META_ACCESS_TOKEN: z.string().optional(),
   META_APP_SECRET: z.string().optional(),
   META_VERIFY_TOKEN: z.string().optional(),
-  META_WEBHOOK_VERIFY_DISABLED: z
-    .enum(["true", "false"])
-    .optional()
-    .transform((value) => value === "true"),
+  WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional(),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   COOKIE_SECURE: z
     .enum(["true", "false"])
     .optional()
@@ -39,6 +35,5 @@ if (parsedEnv.NODE_ENV !== "test" && !parsedEnv.JWT_ACCESS_SECRET) {
 export const env = {
   ...parsedEnv,
   JWT_ACCESS_SECRET: parsedEnv.JWT_ACCESS_SECRET ?? "test-access-secret-for-authentication-tests",
-  META_WEBHOOK_VERIFY_DISABLED: parsedEnv.META_WEBHOOK_VERIFY_DISABLED ?? false,
   COOKIE_SECURE: parsedEnv.COOKIE_SECURE ?? parsedEnv.NODE_ENV === "production"
 };

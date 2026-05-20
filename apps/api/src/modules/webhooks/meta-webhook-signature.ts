@@ -8,10 +8,6 @@ type RawBodyRequest = Request & {
 };
 
 export function verifyMetaWebhookSignature(req: Request) {
-  if (env.META_WEBHOOK_VERIFY_DISABLED && env.NODE_ENV !== "production") {
-    return;
-  }
-
   if (!env.META_APP_SECRET) {
     throw new HttpError(401, "Meta webhook signature verification is not configured.", "META_WEBHOOK_UNVERIFIED");
   }

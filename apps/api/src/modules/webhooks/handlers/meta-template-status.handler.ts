@@ -112,19 +112,19 @@ export class MetaTemplateStatusWebhookHandler implements MetaWebhookFieldHandler
     for (const entry of payload.entry ?? []) {
       for (const change of entry.changes ?? []) {
         const value = change.value ?? {};
-        const rawStatus = getString(value, ["event", "status", "message_template_status"]);
+        const rawStatus = getScalarString(value, ["event", "status", "message_template_status"]);
         const normalizedStatus = rawStatus ? mapMetaTemplateStatus(rawStatus, TemplateStatus.ERROR) : null;
         const isKnownStatus = isKnownMetaTemplateStatus(rawStatus ?? undefined);
 
         events.push({
-          metaTemplateId: getString(value, ["message_template_id", "template_id", "id"]),
-          name: getString(value, ["message_template_name", "template_name", "name"]),
-          languageCode: getString(value, ["message_template_language", "language", "language_code"]),
-          wabaId: getString(value, ["waba_id"]) ?? entry.id ?? null,
+          metaTemplateId: getScalarString(value, ["message_template_id", "template_id", "id"]),
+          name: getScalarString(value, ["message_template_name", "template_name", "name"]),
+          languageCode: getScalarString(value, ["message_template_language", "language", "language_code"]),
+          wabaId: getScalarString(value, ["waba_id"]) ?? entry.id ?? null,
           rawStatus,
           status: rawStatus && isKnownStatus ? normalizedStatus : null,
-          qualityRating: mapQuality(getString(value, ["quality_score", "quality_rating"])),
-          rejectionReason: getString(value, ["rejected_reason", "rejection_reason", "reason"]),
+          qualityRating: mapQuality(getScalarString(value, ["quality_score", "quality_rating"])),
+          rejectionReason: getScalarString(value, ["rejected_reason", "rejection_reason", "reason"]),
           raw: { field: change.field, value }
         });
       }
@@ -149,10 +149,11 @@ export class MetaTemplateStatusWebhookHandler implements MetaWebhookFieldHandler
   }
 }
 
-function getString(source: Record<string, unknown>, keys: string[]) {
+function getScalarString(source: Record<string, unknown>, keys: string[]) {
   for (const key of keys) {
     const value = source[key];
     if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
   }
   return null;
 }

@@ -64,6 +64,46 @@ it("updates a local template from a Meta template status webhook", async () => {
   );
 });
 
+it("matches Meta webhook template ids when Meta sends them as numbers", async () => {
+  const repository = createRepository({
+    findByWebhookIdentity: vi.fn().mockResolvedValue({
+      id: "tmpl_123",
+      status: TemplateStatus.PENDING
+    })
+  });
+  const service = new WebhooksService([new MetaTemplateStatusWebhookHandler(repository as never)]);
+
+  await service.handleMetaWebhook({
+    entry: [
+      {
+        changes: [
+          {
+            field: "message_template_status_update",
+            value: {
+              message_template_id: 1487268096415007,
+              message_template_name: "codex_order_confirmed",
+              message_template_language: "en_IN",
+              event: "APPROVED",
+              reason: "NONE"
+            }
+          }
+        ]
+      }
+    ]
+  });
+
+  expect(repository.findByWebhookIdentity).toHaveBeenCalledWith({
+    metaTemplateId: "1487268096415007",
+    name: "codex_order_confirmed",
+    languageCode: "en_IN",
+    wabaId: null
+  });
+  expect(repository.updateFromWebhook).toHaveBeenCalledWith(
+    "tmpl_123",
+    expect.objectContaining({ status: TemplateStatus.APPROVED })
+  );
+});
+
 it("does not create duplicate lifecycle events when status is unchanged", async () => {
   const repository = createRepository({
     findByWebhookIdentity: vi.fn().mockResolvedValue({
