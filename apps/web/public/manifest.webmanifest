@@ -1,0 +1,50 @@
+{
+  "name": "QW Automations",
+  "short_name": "QW",
+  "description": "Private WhatsApp automation dashboard for Shopify operations.",
+  "id": "/",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "any",
+  "background_color": "#f8fafc",
+  "theme_color": "#22c55e",
+  "categories": ["business", "productivity"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "url": "/dashboard",
+      "description": "Open the automation dashboard."
+    },
+    {
+      "name": "Templates",
+      "short_name": "Templates",
+      "url": "/templates",
+      "description": "Manage WhatsApp templates."
+    },
+    {
+      "name": "Conversations",
+      "short_name": "Chats",
+      "url": "/conversations",
+      "description": "Open customer conversations."
+    }
+  ]
+}

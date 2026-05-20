@@ -18,6 +18,13 @@ export function ShellIcon({ name, className }: { name: IconName; className?: str
       </>
     ),
     dashboard: <path d="M4 13h6V4H4v9ZM14 20h6V4h-6v16ZM4 20h6v-3H4v3Z" />,
+    filter: (
+      <>
+        <path d="M4 6h16" />
+        <path d="M7 12h10" />
+        <path d="M10 18h4" />
+      </>
+    ),
     logs: (
       <>
         <path d="M8 6h13M8 12h13M8 18h13" />

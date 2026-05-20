@@ -1,0 +1,2 @@
+-- RenameIndex
+ALTER INDEX "WhatsAppTemplateComponent_templateId_componentType_sortOrder_ke" RENAME TO "WhatsAppTemplateComponent_templateId_componentType_sortOrde_key";

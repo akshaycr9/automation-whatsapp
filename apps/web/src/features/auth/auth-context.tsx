@@ -4,9 +4,10 @@ import type { AdminProfile } from "./types";
 export type AuthContextValue = {
   accessToken: string | null;
   admin: AdminProfile | null;
-  clearSession: () => void;
+  clearSession: (options?: { message?: string | null }) => void;
   isAuthenticated: boolean;
   isBootstrappingAuth: boolean;
+  sessionMessage: string | null;
   setSession: (admin: AdminProfile, accessToken: string) => void;
 };
 
