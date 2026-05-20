@@ -11,7 +11,6 @@ import { LogsPage } from "@/features/logs/pages/logs-page";
 import { SettingsPage } from "@/features/settings/pages/settings-page";
 import { AutomationConfigurePage } from "@/features/automations/pages/automation-configure-page";
 import { CreateTemplatePage } from "@/features/templates/pages/create-template-page";
-import { TemplateDetailPage } from "@/features/templates/pages/template-detail-page";
 import { TemplatesPage } from "@/features/templates/pages/templates-page";
 
 function withRouteBoundary(element: ReactNode, name: string) {
@@ -44,7 +43,6 @@ const router = createBrowserRouter([
       { path: "templates", element: withTemplatesBoundary(<TemplatesPage />, "Templates List Page") },
       { path: "templates/create", element: withTemplatesBoundary(<CreateTemplatePage />, "Create Template Page") },
       { path: "templates/new", element: <Navigate to="/templates/create" replace /> },
-      { path: "templates/:id", element: withTemplatesBoundary(<TemplateDetailPage />, "Template Detail Page") },
       { path: "automations", element: withRouteBoundary(<AutomationsPage />, "Automations Page") },
       {
         path: "automations/configure",

@@ -1,5 +1,4 @@
 export { CreateTemplatePage } from "./pages/create-template-page";
-export { TemplateDetailPage } from "./pages/template-detail-page";
 export { TemplatesListPage, TemplatesPage } from "./pages/templates-page";
 
 export { useCreateTemplate } from "./hooks/useCreateTemplate";

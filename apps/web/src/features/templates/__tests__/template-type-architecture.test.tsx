@@ -77,7 +77,7 @@ describe("template type architecture", () => {
   it("renders the text preview through the preview renderer", () => {
     render(<TemplatePreviewRenderer formValues={baseForm} />);
 
-    expect(screen.getByRole("heading", { name: "WhatsApp preview" })).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Template message" })).toBeInTheDocument();
     expect(screen.getByText("Hi [Akshay]")).toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ export type IconName =
   | "bolt"
   | "chat"
   | "dashboard"
+  | "filter"
   | "logs"
   | "plus"
   | "search"

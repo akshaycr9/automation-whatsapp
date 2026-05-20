@@ -68,6 +68,7 @@ export function TemplateTable({
               const isSyncing = syncingTemplateId === template.id;
               const isRetrying = retryingTemplateId === template.id;
               const canSync = template.status !== "DRAFT";
+              const rejectionReason = getVisibleRejectionReason(template.rejectionReason);
 
               return (
                 <tr
@@ -85,9 +86,7 @@ export function TemplateTable({
                   <td className="border-b border-border px-4 py-4">
                     <div className="font-medium text-text">{template.displayName}</div>
                     <div className="mt-1 font-mono text-xs text-text-muted">{template.name}</div>
-                    {template.rejectionReason ? (
-                      <div className="mt-2 max-w-xs text-xs text-error">{template.rejectionReason}</div>
-                    ) : null}
+                    {rejectionReason ? <div className="mt-2 max-w-xs text-xs text-error">{rejectionReason}</div> : null}
                   </td>
                   <td className="border-b border-border px-4 py-4">
                     <TemplateCategoryBadge category={template.category} />
@@ -147,6 +146,7 @@ export function TemplateTable({
           const isSyncing = syncingTemplateId === template.id;
           const isRetrying = retryingTemplateId === template.id;
           const canSync = template.status !== "DRAFT";
+          const rejectionReason = getVisibleRejectionReason(template.rejectionReason);
 
           return (
             <article
@@ -175,7 +175,7 @@ export function TemplateTable({
                   {template.languageCode}
                 </span>
               </div>
-              {template.rejectionReason ? <p className="mt-3 text-xs text-error">{template.rejectionReason}</p> : null}
+              {rejectionReason ? <p className="mt-3 text-xs text-error">{rejectionReason}</p> : null}
               <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted">
                 <span>Created {formatTemplateDate(template.createdAt)}</span>
                 <span aria-hidden="true" className="text-text-subtle">
@@ -215,6 +215,16 @@ export function TemplateTable({
       </div>
     </div>
   );
+}
+
+function getVisibleRejectionReason(reason?: string | null) {
+  const normalizedReason = reason?.trim();
+
+  if (!normalizedReason || normalizedReason.toUpperCase() === "NONE") {
+    return null;
+  }
+
+  return normalizedReason;
 }
 
 function SyncIcon({ isSyncing }: { isSyncing: boolean }) {

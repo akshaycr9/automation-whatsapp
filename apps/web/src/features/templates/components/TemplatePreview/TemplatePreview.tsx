@@ -19,14 +19,8 @@ export function TemplatePreview({
   sampleValues
 }: TemplatePreviewProps) {
   return (
-    <aside
-      className="rounded-lg border border-border bg-surface p-4 shadow-sm"
-      aria-labelledby="template-preview-title"
-    >
-      <h2 id="template-preview-title" className="text-base font-semibold text-text">
-        WhatsApp preview
-      </h2>
-      <div className="mt-4 rounded-lg bg-[#ece5dd] p-4">
+    <aside className="rounded-lg border border-border bg-surface p-4 shadow-sm" aria-label="Template message">
+      <div className="rounded-lg bg-[#ece5dd] p-4">
         <div className="max-w-sm rounded-lg rounded-tl-sm bg-white p-3 text-[#111b21] shadow-sm">
           {headerFormat === "TEXT" && headerText ? (
             <div className="mb-2 font-semibold">{formatPreviewText(headerText, sampleValues)}</div>

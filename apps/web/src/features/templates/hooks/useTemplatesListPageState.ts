@@ -14,9 +14,14 @@ const defaultFilters: TemplateListFilters = {
 export function useTemplatesListPageState(templates: Template[]) {
   const navigate = useNavigate();
   const [syncingTemplateId, setSyncingTemplateId] = useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [filters, setFilters] = useState<TemplateListFilters>(defaultFilters);
 
   const filteredTemplates = useMemo(() => filterTemplates(templates, filters), [templates, filters]);
+  const selectedTemplate = useMemo(
+    () => templates.find((template) => template.id === selectedTemplateId) ?? null,
+    [selectedTemplateId, templates]
+  );
   const hasFilters = hasActiveTemplateFilters(filters);
   const languageOptions = useMemo(
     () => [...new Set(templates.map((template) => template.languageCode))].sort(),
@@ -47,7 +52,8 @@ export function useTemplatesListPageState(templates: Template[]) {
   };
 
   const createTemplate = () => navigate("/templates/create");
-  const viewTemplate = (templateId: string) => navigate(`/templates/${templateId}`);
+  const viewTemplate = (templateId: string) => setSelectedTemplateId(templateId);
+  const closeTemplate = () => setSelectedTemplateId(null);
 
   const runPlaceholderAction = (action: string, templateId: string) => {
     if (import.meta.env.DEV) {
@@ -65,12 +71,14 @@ export function useTemplatesListPageState(templates: Template[]) {
 
   return {
     createTemplate,
+    closeTemplate,
     filteredTemplates,
     filters,
     hasFilters,
     languageOptions,
     resetFilters,
     runPlaceholderAction,
+    selectedTemplate,
     statusCounts,
     syncingTemplateId,
     syncTemplate,

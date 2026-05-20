@@ -136,11 +136,16 @@ it("stores provider errors and marks local templates as ERROR", async () => {
   expect(repository.createEvent).toHaveBeenCalledWith(expect.objectContaining({ eventType: TemplateEventType.ERROR }));
 });
 
-it("syncs provider templates and returns created/updated counts", async () => {
+it("syncs local templates from provider and ignores provider-only templates", async () => {
+  const localTemplate = {
+    ...record(TemplateStatus.PENDING),
+    metaTemplateId: "meta_existing",
+    name: "existing_template"
+  };
   const repository = {
+    findAllForSync: vi.fn().mockResolvedValue([localTemplate]),
     createProviderPayload: vi.fn().mockResolvedValue({ id: "payload_123" }),
     updateProviderPayload: vi.fn().mockResolvedValue({}),
-    findByProviderIdentity: vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(record(TemplateStatus.APPROVED)),
     createFromProvider: vi.fn().mockResolvedValue(record(TemplateStatus.APPROVED)),
     updateFromProvider: vi.fn().mockResolvedValue(record(TemplateStatus.APPROVED)),
     createEvent: vi.fn().mockResolvedValue({})
@@ -183,10 +188,20 @@ it("syncs provider templates and returns created/updated counts", async () => {
   );
 
   await expect(service.syncTemplates(context)).resolves.toEqual({
-    data: { syncedCount: 2, createdCount: 1, updatedCount: 1, failedCount: 0 },
+    data: { syncedCount: 1, createdCount: 0, updatedCount: 1, failedCount: 0 },
     message: "Templates synced successfully"
   });
-  expect(repository.createFromProvider).toHaveBeenCalledTimes(1);
+  expect(repository.findAllForSync).toHaveBeenCalledWith(context);
+  expect(repository.createFromProvider).not.toHaveBeenCalled();
   expect(repository.updateFromProvider).toHaveBeenCalledTimes(1);
+  expect(repository.updateFromProvider).toHaveBeenCalledWith(
+    "tmpl_123",
+    expect.objectContaining({
+      metaTemplateId: "meta_existing",
+      status: TemplateStatus.APPROVED,
+      qualityRating: TemplateQualityRating.GREEN
+    }),
+    context
+  );
   expect(repository.createEvent).toHaveBeenCalledWith(expect.objectContaining({ eventType: TemplateEventType.SYNCED }));
 });

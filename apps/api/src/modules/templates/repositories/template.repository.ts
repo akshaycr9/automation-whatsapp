@@ -153,6 +153,17 @@ export class TemplateRepository {
     });
   }
 
+  findAllForSync(scope: TemplateScope) {
+    return this.db.whatsAppTemplate.findMany({
+      where: {
+        adminUserId: scope.adminUserId,
+        deletedAt: null
+      },
+      include: detailInclude,
+      orderBy: { updatedAt: "desc" }
+    });
+  }
+
   findByNameAndLanguage(name: string, languageCode: string, scope: TemplateScope) {
     return this.db.whatsAppTemplate.findFirst({
       where: {

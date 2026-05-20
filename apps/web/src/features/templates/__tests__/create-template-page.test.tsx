@@ -1,14 +1,18 @@
 import { fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { renderWithProviders } from "@/test/test-utils";
+import { server } from "@/test/mocks/server";
 import { CreateTemplatePage } from "../pages/create-template-page";
+import { TemplatesListPage } from "../pages/templates-page";
+import { mockTemplates } from "../data/mockTemplates";
 
-function renderCreateTemplatePage() {
+function renderCreateTemplatePage(listElement = <div>Templates list route</div>) {
   const router = createMemoryRouter(
     [
       { path: "/templates/create", element: <CreateTemplatePage /> },
-      { path: "/templates", element: <div>Templates list route</div> }
+      { path: "/templates", element: listElement }
     ],
     { initialEntries: ["/templates/create"] }
   );
@@ -18,12 +22,35 @@ function renderCreateTemplatePage() {
   return router;
 }
 
+function mockTemplateList() {
+  server.use(
+    http.get("http://localhost:4000/api/templates", () =>
+      HttpResponse.json({
+        data: mockTemplates,
+        pagination: { page: 1, limit: mockTemplates.length, total: mockTemplates.length, totalPages: 1 }
+      })
+    ),
+    http.get("http://localhost:4000/api/templates/:id", ({ params }) => {
+      const template = mockTemplates.find((item) => item.id === params.id);
+      return template
+        ? HttpResponse.json({ data: template })
+        : HttpResponse.json({ message: "Not found" }, { status: 404 });
+    }),
+    http.post("http://localhost:4000/api/templates/sync", () =>
+      HttpResponse.json({
+        data: { syncedCount: 0, createdCount: 0, updatedCount: 0, failedCount: 0 },
+        message: "Templates synced successfully"
+      })
+    )
+  );
+}
+
 it("renders the create template screen", () => {
   renderCreateTemplatePage();
 
   expect(screen.getByRole("heading", { name: "Create Template" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Basic information" })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "WhatsApp preview" })).toBeInTheDocument();
+  expect(screen.getByRole("complementary", { name: "Template message" })).toBeInTheDocument();
   expect(screen.getByLabelText("Template name")).toHaveValue("");
   expect(screen.getByLabelText("Display name")).toHaveValue("");
   expect(screen.getByLabelText("Category")).toHaveValue("");
@@ -110,4 +137,60 @@ it("navigates back to templates on cancel", async () => {
   await user.click(screen.getByRole("button", { name: "Cancel" }));
 
   expect(router.state.location.pathname).toBe("/templates");
+});
+
+it("shows a list notification after successful template submission", async () => {
+  const user = userEvent.setup();
+  mockTemplateList();
+  server.use(
+    http.post("http://localhost:4000/api/templates", () =>
+      HttpResponse.json(
+        {
+          data: { ...mockTemplates[0]!, status: "PENDING" },
+          message: "Template created successfully"
+        },
+        { status: 201 }
+      )
+    )
+  );
+  const router = renderCreateTemplatePage(<TemplatesListPage />);
+
+  await user.type(screen.getByLabelText("Template name"), "order_confirmation_v1");
+  await user.type(screen.getByLabelText("Display name"), "Order confirmation");
+  await user.selectOptions(screen.getByLabelText("Category"), "UTILITY");
+  await user.selectOptions(screen.getByLabelText("Language"), "en");
+  await user.clear(screen.getByLabelText("Body"));
+  await user.type(screen.getByLabelText("Body"), "Your order is confirmed.");
+  await user.click(screen.getByRole("button", { name: "Submit for approval" }));
+
+  expect(router.state.location.pathname).toBe("/templates");
+  expect(await screen.findByRole("status")).toHaveTextContent(
+    "Template submitted to Meta for approval. Current status: Pending."
+  );
+});
+
+it("shows create submission errors on the create page", async () => {
+  const user = userEvent.setup();
+  server.use(
+    http.post("http://localhost:4000/api/templates", () =>
+      HttpResponse.json(
+        { error: { code: "TEMPLATE_PROVIDER_ERROR", message: "Meta credentials are missing." } },
+        { status: 500 }
+      )
+    )
+  );
+  const router = renderCreateTemplatePage();
+
+  await user.type(screen.getByLabelText("Template name"), "order_confirmation_v1");
+  await user.type(screen.getByLabelText("Display name"), "Order confirmation");
+  await user.selectOptions(screen.getByLabelText("Category"), "UTILITY");
+  await user.selectOptions(screen.getByLabelText("Language"), "en");
+  await user.clear(screen.getByLabelText("Body"));
+  await user.type(screen.getByLabelText("Body"), "Your order is confirmed.");
+  await user.click(screen.getByRole("button", { name: "Submit for approval" }));
+
+  expect(router.state.location.pathname).toBe("/templates/create");
+  expect(await screen.findByRole("status")).toHaveTextContent(
+    "Template could not be submitted to Meta. Please review and try again."
+  );
 });
