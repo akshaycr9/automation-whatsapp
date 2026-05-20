@@ -184,6 +184,14 @@ it("shows retry action for error templates and calls retry API", async () => {
   expect(retryCalled).toBe(true);
 });
 
+it("hides empty Meta rejection reasons from the template column", async () => {
+  renderTemplatesList([{ ...mockTemplates[0]!, rejectionReason: "NONE" }]);
+
+  await screen.findAllByText("Order confirmation");
+
+  expect(screen.queryByText("NONE")).not.toBeInTheDocument();
+});
+
 it("renders status and category badges", () => {
   renderWithProviders(
     <div>
