@@ -30,13 +30,13 @@ Response:
 }
 ```
 
-Cookie: sets `qw_refresh_token` as `httpOnly`, `sameSite=lax`, `path=/api/auth`, and `secure=true` in production. The refresh token is not returned in JSON.
+Cookie: sets `qw_refresh_token` and `qw_device_id` as `httpOnly`, `sameSite=lax`, `path=/api/auth`, and `secure=true` in production. The refresh token is not returned in JSON. The device cookie is a stable random identifier used to keep one refresh-session row per admin device.
 
 ### `POST /api/auth/refresh`
 
 Auth: valid `qw_refresh_token` cookie, rate-limited. Frontend must call with `credentials: "include"`.
 
-Response shape matches login. The endpoint rotates the refresh token, revokes the old refresh session, and sets a new `qw_refresh_token` cookie.
+Response shape matches login. The endpoint rotates the refresh token, updates the current device-scoped refresh session in place, and sets a new `qw_refresh_token` cookie. If the device cookie is missing but the refresh token is valid, the endpoint re-sets `qw_device_id` from the matched session.
 
 ### `POST /api/auth/logout`
 
@@ -52,7 +52,7 @@ Response:
 }
 ```
 
-The endpoint revokes the matching refresh session when present and always clears the refresh cookie.
+The endpoint revokes the matching refresh session when present and always clears the refresh cookie. It keeps `qw_device_id` so the same browser can reuse its device slot on the next login.
 
 ### `GET /api/auth/me`
 

@@ -1,7 +1,13 @@
 import { Request, Response } from "express";
 import { HttpError } from "../../lib/http-error.js";
 import { AuthService } from "./auth.service.js";
-import { clearRefreshTokenCookie, REFRESH_COOKIE_NAME, setRefreshTokenCookie } from "./auth.cookies.js";
+import {
+  clearRefreshTokenCookie,
+  DEVICE_COOKIE_NAME,
+  REFRESH_COOKIE_NAME,
+  setDeviceCookie,
+  setRefreshTokenCookie
+} from "./auth.cookies.js";
 import { loginBodySchema } from "./auth.schema.js";
 
 export class AuthController {
@@ -16,6 +22,7 @@ export class AuthController {
 
     const result = await this.authService.login(parsed.data, this.getSessionContext(req));
     setRefreshTokenCookie(res, result.refreshToken, result.refreshTokenExpiresAt);
+    setDeviceCookie(res, result.deviceId);
     res.json({ data: { admin: result.admin, accessToken: result.accessToken } });
   };
 
@@ -28,6 +35,7 @@ export class AuthController {
 
     const result = await this.authService.refresh(refreshToken, this.getSessionContext(req));
     setRefreshTokenCookie(res, result.refreshToken, result.refreshTokenExpiresAt);
+    setDeviceCookie(res, result.deviceId);
     res.json({ data: { admin: result.admin, accessToken: result.accessToken } });
   };
 
@@ -54,8 +62,15 @@ export class AuthController {
 
   private getSessionContext(req: Request) {
     return {
+      deviceId: this.getDeviceId(req),
       userAgent: req.get("user-agent") ?? null,
       ipAddress: req.ip ?? null
     };
+  }
+
+  private getDeviceId(req: Request) {
+    const cookies = req.cookies as Record<string, unknown> | undefined;
+    const deviceId = cookies?.[DEVICE_COOKIE_NAME];
+    return typeof deviceId === "string" && deviceId.length > 0 ? deviceId : null;
   }
 }

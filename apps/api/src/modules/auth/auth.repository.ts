@@ -15,6 +15,7 @@ export type AdminUserRecord = {
 export type RefreshSessionRecord = {
   id: string;
   adminUserId: string;
+  deviceId: string;
   tokenHash: string;
   userAgent: string | null;
   ipAddress: string | null;
@@ -36,9 +37,12 @@ type AdminUserDelegate = {
 };
 
 type RefreshSessionDelegate = {
-  create(args: {
-    data: Pick<RefreshSessionRecord, "adminUserId" | "tokenHash" | "expiresAt"> &
-      Partial<Pick<RefreshSessionRecord, "userAgent" | "ipAddress">>;
+  upsert(args: {
+    where: { adminUserId_deviceId: Pick<RefreshSessionRecord, "adminUserId" | "deviceId"> };
+    create: Pick<RefreshSessionRecord, "adminUserId" | "deviceId" | "tokenHash" | "expiresAt"> &
+      Partial<Pick<RefreshSessionRecord, "userAgent" | "ipAddress" | "revokedAt">>;
+    update: Pick<RefreshSessionRecord, "tokenHash" | "expiresAt"> &
+      Partial<Pick<RefreshSessionRecord, "userAgent" | "ipAddress" | "revokedAt">>;
   }): Promise<RefreshSessionRecord>;
   findUnique(args: {
     where: { tokenHash: string };
@@ -46,7 +50,7 @@ type RefreshSessionDelegate = {
   }): Promise<RefreshSessionRecord | null>;
   update(args: {
     where: { id: string };
-    data: Partial<Pick<RefreshSessionRecord, "revokedAt">>;
+    data: Partial<Pick<RefreshSessionRecord, "tokenHash" | "expiresAt" | "revokedAt" | "userAgent" | "ipAddress">>;
   }): Promise<RefreshSessionRecord>;
 };
 
@@ -82,21 +86,35 @@ export class AuthRepository {
     });
   }
 
-  createRefreshSession(input: {
+  upsertRefreshSession(input: {
     adminUserId: string;
+    deviceId: string;
     tokenHash: string;
     userAgent?: string | null;
     ipAddress?: string | null;
     expiresAt: Date;
   }) {
-    return this.db.refreshSession.create({
-      data: {
+    const data = {
+      tokenHash: input.tokenHash,
+      userAgent: input.userAgent ?? null,
+      ipAddress: input.ipAddress ?? null,
+      expiresAt: input.expiresAt,
+      revokedAt: null
+    };
+
+    return this.db.refreshSession.upsert({
+      where: {
+        adminUserId_deviceId: {
+          adminUserId: input.adminUserId,
+          deviceId: input.deviceId
+        }
+      },
+      create: {
         adminUserId: input.adminUserId,
-        tokenHash: input.tokenHash,
-        userAgent: input.userAgent ?? null,
-        ipAddress: input.ipAddress ?? null,
-        expiresAt: input.expiresAt
-      }
+        deviceId: input.deviceId,
+        ...data
+      },
+      update: data
     });
   }
 
@@ -104,6 +122,27 @@ export class AuthRepository {
     return this.db.refreshSession.findUnique({
       where: { tokenHash },
       include: { adminUser: true }
+    });
+  }
+
+  updateRefreshSessionToken(
+    refreshSessionId: string,
+    input: {
+      tokenHash: string;
+      userAgent?: string | null;
+      ipAddress?: string | null;
+      expiresAt: Date;
+    }
+  ) {
+    return this.db.refreshSession.update({
+      where: { id: refreshSessionId },
+      data: {
+        tokenHash: input.tokenHash,
+        userAgent: input.userAgent ?? null,
+        ipAddress: input.ipAddress ?? null,
+        expiresAt: input.expiresAt,
+        revokedAt: null
+      }
     });
   }
 

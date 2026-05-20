@@ -22,15 +22,29 @@ export class InMemoryAuthRepository extends AuthRepository {
         }
       },
       refreshSession: {
-        create: async ({ data }) => {
+        upsert: async ({ where, create, update }) => {
+          const existing = [...this.refreshSessions.values()].find(
+            (session) =>
+              session.adminUserId === where.adminUserId_deviceId.adminUserId &&
+              session.deviceId === where.adminUserId_deviceId.deviceId
+          );
+
+          if (existing) {
+            this.refreshSessions.delete(existing.tokenHash);
+            const updated = { ...existing, ...update, updatedAt: new Date() };
+            this.refreshSessions.set(updated.tokenHash, updated);
+            return updated;
+          }
+
           const session: RefreshSessionRecord = {
             id: `refresh_${this.refreshSessions.size + 1}`,
-            adminUserId: data.adminUserId,
-            tokenHash: data.tokenHash,
-            userAgent: data.userAgent ?? null,
-            ipAddress: data.ipAddress ?? null,
-            expiresAt: data.expiresAt,
-            revokedAt: null,
+            adminUserId: create.adminUserId,
+            deviceId: create.deviceId,
+            tokenHash: create.tokenHash,
+            userAgent: create.userAgent ?? null,
+            ipAddress: create.ipAddress ?? null,
+            expiresAt: create.expiresAt,
+            revokedAt: create.revokedAt ?? null,
             createdAt: new Date(),
             updatedAt: new Date()
           };
@@ -46,6 +60,7 @@ export class InMemoryAuthRepository extends AuthRepository {
         update: async ({ where, data }) => {
           const session = [...this.refreshSessions.values()].find((value) => value.id === where.id);
           if (!session) throw new Error("Refresh session not found");
+          this.refreshSessions.delete(session.tokenHash);
           const updated = { ...session, ...data, updatedAt: new Date() };
           this.refreshSessions.set(updated.tokenHash, updated);
           return updated;
