@@ -38,6 +38,13 @@ function renderTemplatesList(templates = mockTemplates, detailTemplates = templa
         message: "Templates synced successfully"
       })
     ),
+    http.post("http://localhost:4000/api/templates/:id/sync", ({ params }) => {
+      const template = templates.find((item) => item.id === params.id) ?? templates[0]!;
+      return HttpResponse.json({
+        data: { ...template, status: "APPROVED" },
+        message: "Template synced successfully"
+      });
+    }),
     http.delete("http://localhost:4000/api/templates/:id", ({ params }) =>
       HttpResponse.json({ data: { id: params.id, status: "DELETED" }, message: "Template deleted successfully" })
     )
@@ -205,6 +212,46 @@ it("renders sync actions and created dates", async () => {
   expect(screen.getByText("Not available")).toBeInTheDocument();
 });
 
+it("shows and dismisses a success notification after bulk sync", async () => {
+  const user = userEvent.setup();
+  renderTemplatesList();
+  server.use(
+    http.post("http://localhost:4000/api/templates/sync", () =>
+      HttpResponse.json({
+        data: { syncedCount: 3, createdCount: 0, updatedCount: 2, failedCount: 1 },
+        message: "Templates synced successfully"
+      })
+    )
+  );
+
+  await screen.findAllByText("Order confirmation");
+  await user.click(screen.getByRole("button", { name: /sync templates/i }));
+
+  expect(await screen.findByRole("status")).toHaveTextContent("Templates synced. Updated 2, failed 1.");
+
+  await user.click(screen.getByRole("button", { name: "Dismiss notification" }));
+
+  expect(screen.queryByText("Templates synced. Updated 2, failed 1.")).not.toBeInTheDocument();
+});
+
+it("shows an error notification when bulk sync fails", async () => {
+  const user = userEvent.setup();
+  renderTemplatesList();
+  server.use(
+    http.post("http://localhost:4000/api/templates/sync", () =>
+      HttpResponse.json(
+        { error: { code: "TEMPLATE_SYNC_FAILED", message: "Meta credentials are missing." } },
+        { status: 500 }
+      )
+    )
+  );
+
+  await screen.findAllByText("Order confirmation");
+  await user.click(screen.getByRole("button", { name: /sync templates/i }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Meta credentials are missing.");
+});
+
 it("keeps advanced filters inside the filter dropdown", async () => {
   const user = userEvent.setup();
   renderTemplatesList();
@@ -224,23 +271,53 @@ it("keeps advanced filters inside the filter dropdown", async () => {
 it("shows syncing feedback for the clicked template", async () => {
   const user = userEvent.setup();
   let syncCalled = false;
+  renderTemplatesList();
   server.use(
     http.post("http://localhost:4000/api/templates/tmpl_delivery_update_v1/sync", async () => {
       syncCalled = true;
       await delay(100);
       return HttpResponse.json({
-        data: { ...mockTemplates[1], status: "APPROVED" },
+        data: { ...mockTemplates[5], status: "APPROVED" },
         message: "Template synced successfully"
       });
     })
   );
+
+  await screen.findAllByText("Order confirmation");
+  await user.click(screen.getAllByRole("button", { name: "Sync" })[0]!);
+
+  expect(await screen.findAllByRole("button", { name: "Syncing" })).toHaveLength(2);
+  expect(syncCalled).toBe(true);
+});
+
+it("shows a success notification after row sync", async () => {
+  const user = userEvent.setup();
   renderTemplatesList();
 
   await screen.findAllByText("Order confirmation");
   await user.click(screen.getAllByRole("button", { name: "Sync" })[0]!);
 
-  expect(screen.getAllByRole("button", { name: "Syncing" })).toHaveLength(2);
-  expect(syncCalled).toBe(true);
+  expect(await screen.findByRole("status")).toHaveTextContent("Delivery update synced. Status is Approved.");
+});
+
+it("shows an error notification when row sync fails", async () => {
+  const user = userEvent.setup();
+  renderTemplatesList();
+  server.use(
+    http.post("http://localhost:4000/api/templates/tmpl_delivery_update_v1/sync", () =>
+      HttpResponse.json(
+        { error: { code: "TEMPLATE_SYNC_FAILED", message: "Template was not found on Meta." } },
+        { status: 404 }
+      )
+    )
+  );
+
+  await screen.findAllByText("Order confirmation");
+  await user.click(screen.getAllByRole("button", { name: "Sync" })[0]!);
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Delivery update could not be synced: Template was not found on Meta."
+  );
 });
 
 it("shows retry action for error templates and calls retry API", async () => {
@@ -267,6 +344,20 @@ it("shows retry action for error templates and calls retry API", async () => {
   await user.click(screen.getAllByRole("button", { name: "Retry template submission" })[0]!);
 
   expect(retryCalled).toBe(true);
+  expect(await screen.findByRole("status")).toHaveTextContent("Order confirmation resubmitted. Status is Pending.");
+});
+
+it("shows a success notification after delete", async () => {
+  const user = userEvent.setup();
+  const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  renderTemplatesList();
+
+  await screen.findAllByText("Order confirmation");
+  await user.click(screen.getAllByRole("button", { name: "Delete template" })[0]!);
+
+  expect(await screen.findByRole("status")).toHaveTextContent("Template deleted locally.");
+
+  confirmSpy.mockRestore();
 });
 
 it("hides empty Meta rejection reasons from the template column", async () => {

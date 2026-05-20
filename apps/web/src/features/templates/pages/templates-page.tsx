@@ -1,4 +1,8 @@
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { SectionErrorBoundary } from "@/components/error-boundaries";
+import type { TemplateActionNotificationState } from "../components/TemplateList/TemplateActionNotification";
+import { TemplateActionNotification } from "../components/TemplateList/TemplateActionNotification";
 import { EmptyTemplatesState } from "../components/TemplateList/EmptyTemplatesState";
 import { TemplateListErrorState } from "../components/TemplateList/TemplateListErrorState";
 import { TemplateListHeader } from "../components/TemplateList/TemplateListHeader";
@@ -13,8 +17,19 @@ import { useSyncTemplates } from "../hooks/useSyncTemplates";
 import { useTemplate } from "../hooks/useTemplate";
 import { useTemplates } from "../hooks/useTemplates";
 import { useTemplatesListPageState } from "../hooks/useTemplatesListPageState";
+import {
+  buildBulkSyncMessage,
+  buildTemplateStatusMessage,
+  getTemplateActionErrorMessage
+} from "../utils/templateActionMessages";
+
+type TemplateLocationState = {
+  templateNotification?: Omit<TemplateActionNotificationState, "id">;
+};
 
 export function TemplatesListPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const templatesQuery = useTemplates();
   const syncTemplates = useSyncTemplates();
   const syncTemplate = useSyncTemplate();
@@ -24,6 +39,79 @@ export function TemplatesListPage() {
   const listState = useTemplatesListPageState(templates);
   const selectedTemplateDetail = useTemplate(listState.selectedTemplate?.id);
   const selectedTemplate = selectedTemplateDetail.data ?? listState.selectedTemplate;
+  const [notification, setNotification] = useState<TemplateActionNotificationState | null>(null);
+
+  useEffect(() => {
+    const routeNotification = (location.state as TemplateLocationState | null)?.templateNotification;
+    if (!routeNotification) return;
+
+    setNotification({ ...routeNotification, id: Date.now() });
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
+
+  const showNotification = (nextNotification: Omit<TemplateActionNotificationState, "id">) => {
+    setNotification({ ...nextNotification, id: Date.now() });
+  };
+
+  const clearNotification = () => setNotification(null);
+
+  const handleBulkSync = async () => {
+    clearNotification();
+    try {
+      const response = await syncTemplates.mutateAsync();
+      showNotification({ variant: "success", message: buildBulkSyncMessage(response.data) });
+    } catch (error) {
+      showNotification({
+        variant: "error",
+        message: getTemplateActionErrorMessage(error, "Templates could not be synced. Please try again.")
+      });
+    }
+  };
+
+  const handleRowSync = async (templateId: string) => {
+    const template = templates.find((item) => item.id === templateId);
+    clearNotification();
+    try {
+      const response = await syncTemplate.mutateAsync(templateId);
+      showNotification({ variant: "success", message: buildTemplateStatusMessage(response.data, "synced") });
+    } catch (error) {
+      const name = template?.displayName ?? "Template";
+      showNotification({
+        variant: "error",
+        message: `${name} could not be synced: ${getTemplateActionErrorMessage(error, "Please try again.")}`
+      });
+    }
+  };
+
+  const handleRetrySubmission = async (templateId: string) => {
+    const template = templates.find((item) => item.id === templateId);
+    clearNotification();
+    try {
+      const response = await retryTemplateSubmission.mutateAsync(templateId);
+      showNotification({ variant: "success", message: buildTemplateStatusMessage(response.data, "resubmitted") });
+    } catch (error) {
+      const name = template?.displayName ?? "Template";
+      showNotification({
+        variant: "error",
+        message: `${name} could not be resubmitted: ${getTemplateActionErrorMessage(error, "Please try again.")}`
+      });
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    clearNotification();
+    if (!window.confirm("Delete this template locally?")) return;
+
+    try {
+      await deleteTemplate.mutateAsync(templateId);
+      showNotification({ variant: "success", message: "Template deleted locally." });
+    } catch (error) {
+      showNotification({
+        variant: "error",
+        message: getTemplateActionErrorMessage(error, "Template could not be deleted. Please try again.")
+      });
+    }
+  };
 
   return (
     <section aria-labelledby="templates-list-title" className="space-y-4">
@@ -32,6 +120,8 @@ export function TemplatesListPage() {
         filteredCount={listState.filteredTemplates.length}
         onCreateTemplate={listState.createTemplate}
       />
+
+      <TemplateActionNotification notification={notification} onDismiss={clearNotification} />
 
       <SectionErrorBoundary name="Template Filters">
         <TemplateListToolbar
@@ -46,7 +136,7 @@ export function TemplatesListPage() {
           onLanguageChange={(languageCode) => listState.updateFilters({ languageCode })}
           onTypeChange={(type) => listState.updateFilters({ type })}
           onResetFilters={listState.resetFilters}
-          onSyncTemplates={() => syncTemplates.mutate()}
+          onSyncTemplates={() => void handleBulkSync()}
         />
       </SectionErrorBoundary>
 
@@ -66,14 +156,10 @@ export function TemplatesListPage() {
             retryingTemplateId={retryTemplateSubmission.isPending ? (retryTemplateSubmission.variables ?? null) : null}
             syncingTemplateId={syncTemplate.isPending ? (syncTemplate.variables ?? null) : null}
             onViewTemplate={listState.viewTemplate}
-            onSyncTemplate={(templateId) => syncTemplate.mutate(templateId)}
+            onSyncTemplate={(templateId) => void handleRowSync(templateId)}
             onDuplicateTemplate={(templateId) => listState.runPlaceholderAction("duplicate", templateId)}
-            onRetrySubmission={(templateId) => retryTemplateSubmission.mutate(templateId)}
-            onDeleteTemplate={(templateId) => {
-              if (window.confirm("Delete this template locally?")) {
-                deleteTemplate.mutate(templateId);
-              }
-            }}
+            onRetrySubmission={(templateId) => void handleRetrySubmission(templateId)}
+            onDeleteTemplate={(templateId) => void handleDeleteTemplate(templateId)}
           />
         ) : null}
       </SectionErrorBoundary>

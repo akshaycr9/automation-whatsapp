@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/api-client";
 import { DEFAULT_TEMPLATE_TYPE } from "../constants/template.constants";
 import { mapTemplateFormToApiPayload } from "../mappers/templateFormToApi.mapper";
 import { useCreateTemplate } from "./useCreateTemplate";
+import { buildCreateTemplateSuccessMessage } from "../utils/templateActionMessages";
 import type {
   CreateTemplateFormValues,
   TemplateButton,
@@ -118,8 +119,14 @@ export function useCreateTemplatePageState() {
     const payload = mapTemplateFormToApiPayload(formValues, detectedVariables);
     try {
       const response = await createTemplate.mutateAsync(payload);
-      setFeedback(response.message || "Template submitted successfully.");
-      navigate("/templates");
+      navigate("/templates", {
+        state: {
+          templateNotification: {
+            variant: "success",
+            message: buildCreateTemplateSuccessMessage(response.data)
+          }
+        }
+      });
     } catch (error) {
       setFeedback(getCreateTemplateErrorMessage(error));
     }
