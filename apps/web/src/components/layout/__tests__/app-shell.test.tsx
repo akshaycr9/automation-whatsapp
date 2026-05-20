@@ -1,5 +1,5 @@
 import { http, HttpResponse } from "msw";
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { AppShell } from "../app-shell";
@@ -82,6 +82,6 @@ it("logs out from the topbar avatar action", async () => {
   await user.click(screen.getByRole("button", { name: /sign out/i }));
 
   expect(logoutCalled).toBe(true);
-  expect(router.state.location.pathname).toBe("/login");
-  expect(screen.getByText("Login content")).toBeInTheDocument();
+  await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
+  expect(await screen.findByText("Login content")).toBeInTheDocument();
 });
