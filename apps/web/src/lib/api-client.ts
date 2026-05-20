@@ -5,6 +5,7 @@ export type ApiClientOptions = {
 export type ApiRequestOptions = {
   accessToken?: string | null;
   credentials?: RequestCredentials;
+  skipAuthRecovery?: boolean;
 };
 
 export type ApiResponse<T> = {
@@ -19,7 +20,10 @@ type ApiErrorPayload = {
   };
 };
 
+type UnauthorizedHandler = (error: ApiError) => Promise<string | null>;
+
 const defaultBaseUrl = getDefaultBaseUrl();
+let unauthorizedHandler: UnauthorizedHandler | null = null;
 
 export class ApiError extends Error {
   constructor(
@@ -35,7 +39,12 @@ export class ApiError extends Error {
 export function createApiClient(options: ApiClientOptions = {}) {
   const baseUrl = trimTrailingSlash(options.baseUrl ?? defaultBaseUrl);
 
-  async function request<T>(path: string, init: RequestInit = {}, requestOptions: ApiRequestOptions = {}) {
+  async function request<T>(
+    path: string,
+    init: RequestInit = {},
+    requestOptions: ApiRequestOptions = {},
+    hasRetriedAuth = false
+  ) {
     const headers = new Headers(init.headers);
     headers.set("Accept", "application/json");
 
@@ -68,12 +77,22 @@ export function createApiClient(options: ApiClientOptions = {}) {
 
     if (!response.ok) {
       const error = "error" in payload ? payload.error : undefined;
-      throw new ApiError(
+      const apiError = new ApiError(
         response.status,
         error?.code ?? "UNKNOWN",
         error?.message ?? "Something went wrong. Please try again.",
         error?.details
       );
+
+      if (shouldAttemptAuthRecovery(apiError, requestOptions, hasRetriedAuth)) {
+        const nextAccessToken = await unauthorizedHandler?.(apiError);
+
+        if (nextAccessToken) {
+          return request<T>(path, init, { ...requestOptions, accessToken: nextAccessToken }, true);
+        }
+      }
+
+      throw apiError;
     }
 
     return payload as ApiResponse<T>;
@@ -98,6 +117,14 @@ export function createApiClient(options: ApiClientOptions = {}) {
   }
 
   return { delete: del, get, post };
+}
+
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
+  unauthorizedHandler = handler;
+}
+
+function shouldAttemptAuthRecovery(error: ApiError, requestOptions: ApiRequestOptions, hasRetriedAuth: boolean) {
+  return error.status === 401 && !requestOptions.skipAuthRecovery && !hasRetriedAuth && Boolean(unauthorizedHandler);
 }
 
 async function readJson<T>(response: Response): Promise<T> {

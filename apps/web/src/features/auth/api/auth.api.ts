@@ -9,21 +9,24 @@ type CurrentAdminPayload = {
 export const authApi = {
   async login(input: LoginInput) {
     const response = await apiClient.post<AuthSessionPayload>("/api/auth/login", input, {
-      credentials: "include"
+      credentials: "include",
+      skipAuthRecovery: true
     });
     return response.data;
   },
 
   async refreshSession() {
     const response = await apiClient.post<AuthSessionPayload>("/api/auth/refresh", undefined, {
-      credentials: "include"
+      credentials: "include",
+      skipAuthRecovery: true
     });
     return response.data;
   },
 
   async logout() {
     await apiClient.post<{ success: boolean }>("/api/auth/logout", undefined, {
-      credentials: "include"
+      credentials: "include",
+      skipAuthRecovery: true
     });
   },
 

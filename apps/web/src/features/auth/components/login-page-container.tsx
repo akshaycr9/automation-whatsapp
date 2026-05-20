@@ -2,6 +2,7 @@ import { LoginCard } from "./login-card";
 import { LoginForm } from "./login-form";
 import { ApiError } from "@/lib/api-client";
 import { useLoginMutation } from "../hooks/use-login-mutation";
+import { useAuth } from "../hooks/use-auth";
 import type { LoginFormValues } from "../schemas/login.schema";
 
 const initialLoginValues: LoginFormValues = {
@@ -10,12 +11,14 @@ const initialLoginValues: LoginFormValues = {
 };
 
 export function LoginPageContainer() {
+  const { sessionMessage } = useAuth();
   const loginMutation = useLoginMutation();
+  const errorMessage = loginMutation.error ? getLoginErrorMessage(loginMutation.error) : sessionMessage;
 
   return (
     <LoginCard>
       <LoginForm
-        errorMessage={loginMutation.error ? getLoginErrorMessage(loginMutation.error) : null}
+        errorMessage={errorMessage}
         initialValues={initialLoginValues}
         isLoading={loginMutation.isPending}
         onSubmit={(values) => {
