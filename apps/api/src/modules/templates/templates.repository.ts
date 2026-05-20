@@ -1,1 +1,1 @@
-export class TemplatesRepository {}
+export { TemplateRepository as TemplatesRepository } from "./repositories/template.repository.js";

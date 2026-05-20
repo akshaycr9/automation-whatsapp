@@ -15,6 +15,11 @@ const envSchema = z.object({
   BCRYPT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().optional(),
+  META_ACCESS_TOKEN: z.string().optional(),
+  META_APP_SECRET: z.string().optional(),
+  META_VERIFY_TOKEN: z.string().optional(),
+  WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional(),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   COOKIE_SECURE: z
     .enum(["true", "false"])
     .optional()

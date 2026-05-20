@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">QW Automations</title>
+  <desc id="desc">Green app icon with QW initials.</desc>
+  <rect width="512" height="512" rx="112" fill="#22c55e" />
+  <path
+    d="M150 148h112c64 0 108 42 108 104 0 39-18 71-48 89l35 57h-78l-25-43h-30v43h-74V148Zm74 62v84h34c23 0 38-17 38-42s-15-42-38-42h-34Z"
+    fill="#ffffff"
+  />
+  <path d="M118 366h82l20 34h-80l-22-34Z" fill="#dcfce7" />
+</svg>

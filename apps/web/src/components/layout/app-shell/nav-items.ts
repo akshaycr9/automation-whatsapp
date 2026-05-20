@@ -43,6 +43,11 @@ export const navItems: NavItem[] = [
 export const mobileNavItems = navItems.filter((item) => item.id !== "logs");
 
 export const secondaryRouteMeta: Record<string, SecondaryRouteMeta> = {
+  "/templates/create": {
+    title: "Create Template",
+    subtitle: "Submit to Meta for approval",
+    backTo: "/templates"
+  },
   "/templates/new": {
     title: "Create Template",
     subtitle: "Submit to Meta for approval",

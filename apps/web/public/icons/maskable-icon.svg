@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">QW Automations maskable icon</title>
+  <desc id="desc">Maskable green app icon with safe-area QW initials.</desc>
+  <rect width="512" height="512" fill="#22c55e" />
+  <circle cx="256" cy="256" r="196" fill="#16a34a" />
+  <path
+    d="M152 150h110c64 0 108 42 108 104 0 39-18 72-49 90l35 58h-77l-26-44h-29v44h-72V150Zm72 62v84h34c24 0 39-17 39-42s-15-42-39-42h-34Z"
+    fill="#ffffff"
+  />
+  <path d="M120 366h82l21 36h-81l-22-36Z" fill="#dcfce7" />
+</svg>

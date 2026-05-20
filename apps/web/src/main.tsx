@@ -1,7 +1,9 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { AppProviders } from "./app/providers";
+import { registerServiceWorker } from "./app/register-service-worker";
 import { AppRouter } from "./app/router";
+import { AppErrorBoundary } from "./components/error-boundaries";
 import "./styles/index.css";
 
 const root = document.getElementById("root");
@@ -12,8 +14,12 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <AppProviders>
-      <AppRouter />
-    </AppProviders>
+    <AppErrorBoundary>
+      <AppProviders>
+        <AppRouter />
+      </AppProviders>
+    </AppErrorBoundary>
   </StrictMode>
 );
+
+registerServiceWorker();
