@@ -1,6 +1,5 @@
 import { SectionErrorBoundary } from "@/components/error-boundaries";
 import { EmptyTemplatesState } from "../components/TemplateList/EmptyTemplatesState";
-import { TemplateFilters } from "../components/TemplateList/TemplateFilters";
 import { TemplateListErrorState } from "../components/TemplateList/TemplateListErrorState";
 import { TemplateListHeader } from "../components/TemplateList/TemplateListHeader";
 import { TemplateListSkeleton } from "../components/TemplateList/TemplateListSkeleton";
@@ -34,19 +33,16 @@ export function TemplatesListPage() {
         <TemplateListToolbar
           activeStatus={listState.filters.status ?? "ALL"}
           counts={listState.statusCounts}
-          isSyncing={syncTemplates.isPending}
-          onStatusChange={(status) => listState.updateFilters({ status })}
-          onSyncTemplates={() => syncTemplates.mutate()}
-        />
-        <TemplateFilters
           filters={listState.filters}
+          isSyncing={syncTemplates.isPending}
           languageOptions={listState.languageOptions}
-          onSearchChange={(search) => listState.updateFilters({ search })}
           onStatusChange={(status) => listState.updateFilters({ status })}
+          onSearchChange={(search) => listState.updateFilters({ search })}
           onCategoryChange={(category) => listState.updateFilters({ category })}
           onLanguageChange={(languageCode) => listState.updateFilters({ languageCode })}
           onTypeChange={(type) => listState.updateFilters({ type })}
           onResetFilters={listState.resetFilters}
+          onSyncTemplates={() => syncTemplates.mutate()}
         />
       </SectionErrorBoundary>
 

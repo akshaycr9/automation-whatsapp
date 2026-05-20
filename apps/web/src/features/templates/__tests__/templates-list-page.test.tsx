@@ -75,10 +75,22 @@ it("filters templates by status", async () => {
   renderTemplatesList();
 
   await screen.findAllByText("Order confirmation");
-  await user.selectOptions(screen.getByLabelText("Status", { selector: "#template-status" }), "REJECTED");
+  await user.click(screen.getByRole("button", { name: /rejected/i }));
 
   expect(screen.getAllByText("New collection offer")).toHaveLength(2);
   expect(screen.queryByText("Order shipped")).not.toBeInTheDocument();
+});
+
+it("opens advanced filters and filters by category", async () => {
+  const user = userEvent.setup();
+  renderTemplatesList();
+
+  await screen.findAllByText("Order confirmation");
+  await user.click(screen.getByRole("button", { name: "Filters" }));
+  await user.selectOptions(screen.getByLabelText("Category"), "MARKETING");
+
+  expect(screen.getAllByText("Abandoned cart reminder")).toHaveLength(2);
+  expect(screen.queryByText("Order confirmation")).not.toBeInTheDocument();
 });
 
 it("shows empty state for filters with no matches", async () => {
@@ -89,7 +101,7 @@ it("shows empty state for filters with no matches", async () => {
   await user.type(screen.getByLabelText(/search templates/i), "does_not_exist");
 
   expect(screen.getByText("No templates match your filters.")).toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: /clear filters/i }));
+  await user.click(screen.getByRole("button", { name: "Clear filters" }));
   expect(screen.getAllByText("Order confirmation")).toHaveLength(2);
 });
 
@@ -129,11 +141,28 @@ it("renders sync actions and created dates", async () => {
 
   await screen.findAllByText("Order confirmation");
 
+  expect(screen.getByRole("button", { name: /sync templates/i })).toBeInTheDocument();
   expect(screen.getAllByRole("button", { name: "Sync" })).toHaveLength(10);
   expect(screen.getAllByText(/May 01, 2026/)).toHaveLength(2);
   expect(screen.getAllByText(/Created May 01, 2026/)).toHaveLength(1);
   expect(screen.getByText("Drafts sync after submission")).toBeInTheDocument();
   expect(screen.getByText("Not available")).toBeInTheDocument();
+});
+
+it("keeps advanced filters inside the filter dropdown", async () => {
+  const user = userEvent.setup();
+  renderTemplatesList();
+
+  await screen.findAllByText("Order confirmation");
+  expect(screen.queryByLabelText("Category")).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: /filters/i }));
+
+  expect(screen.getByLabelText("Status")).toBeInTheDocument();
+  expect(screen.getByLabelText("Category")).toBeInTheDocument();
+  expect(screen.getByLabelText("Language")).toBeInTheDocument();
+  expect(screen.getByLabelText("Type")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Reset" })).toBeInTheDocument();
 });
 
 it("shows syncing feedback for the clicked template", async () => {
