@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { delay, http, HttpResponse } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -61,6 +61,17 @@ function renderTemplatesList(templates = mockTemplates, detailTemplates = templa
   renderWithProviders(<RouterProvider router={router} />);
 
   return router;
+}
+
+function fireTouch(element: Element, type: string, clientY: number) {
+  element.dispatchEvent(
+    new TouchEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      touches: type === "touchend" ? [] : [{ clientY } as Touch],
+      changedTouches: [{ clientY } as Touch]
+    })
+  );
 }
 
 it("renders mock templates", async () => {
@@ -250,6 +261,26 @@ it("shows an error notification when bulk sync fails", async () => {
   await user.click(screen.getByRole("button", { name: /sync templates/i }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent("Meta credentials are missing.");
+});
+
+it("refreshes templates with pull-to-refresh", async () => {
+  renderTemplatesList();
+
+  await screen.findAllByText("Order confirmation");
+
+  const page = screen.getByRole("region", { name: "Templates" });
+  act(() => {
+    fireTouch(page, "touchstart", 0);
+    fireTouch(page, "touchmove", 180);
+  });
+
+  expect(screen.getByRole("status")).toHaveTextContent("Release to refresh");
+
+  act(() => {
+    fireTouch(page, "touchend", 180);
+  });
+
+  expect(await screen.findByText("Templates refreshed.")).toBeInTheDocument();
 });
 
 it("keeps advanced filters inside the filter dropdown", async () => {

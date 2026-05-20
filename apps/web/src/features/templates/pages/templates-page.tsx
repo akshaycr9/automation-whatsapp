@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { SectionErrorBoundary } from "@/components/error-boundaries";
+import { PullToRefreshIndicator } from "@/components/ui/pull-to-refresh-indicator";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import type { TemplateActionNotificationState } from "../components/TemplateList/TemplateActionNotification";
 import { TemplateActionNotification } from "../components/TemplateList/TemplateActionNotification";
 import { EmptyTemplatesState } from "../components/TemplateList/EmptyTemplatesState";
@@ -40,6 +42,8 @@ export function TemplatesListPage() {
   const selectedTemplateDetail = useTemplate(listState.selectedTemplate?.id);
   const selectedTemplate = selectedTemplateDetail.data ?? listState.selectedTemplate;
   const [notification, setNotification] = useState<TemplateActionNotificationState | null>(null);
+  const isMutatingTemplates =
+    syncTemplates.isPending || syncTemplate.isPending || retryTemplateSubmission.isPending || deleteTemplate.isPending;
 
   useEffect(() => {
     const routeNotification = (location.state as TemplateLocationState | null)?.templateNotification;
@@ -113,8 +117,27 @@ export function TemplatesListPage() {
     }
   };
 
+  const pullToRefresh = usePullToRefresh<HTMLElement>({
+    enabled: !isMutatingTemplates,
+    isRefreshing: templatesQuery.isFetching,
+    onRefresh: async () => {
+      clearNotification();
+      try {
+        await templatesQuery.refetch();
+        showNotification({ variant: "success", message: "Templates refreshed." });
+      } catch (error) {
+        showNotification({
+          variant: "error",
+          message: getTemplateActionErrorMessage(error, "Templates could not be refreshed. Please try again.")
+        });
+      }
+    }
+  });
+
   return (
-    <section aria-labelledby="templates-list-title" className="space-y-4">
+    <section ref={pullToRefresh.containerRef} aria-labelledby="templates-list-title" className="space-y-4">
+      <PullToRefreshIndicator progress={pullToRefresh.progress} status={pullToRefresh.status} />
+
       <TemplateListHeader
         totalCount={templates.length}
         filteredCount={listState.filteredTemplates.length}
