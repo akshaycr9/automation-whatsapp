@@ -15,6 +15,7 @@ export type AuthSessionResult = {
   accessToken: string;
   refreshToken: string;
   refreshTokenExpiresAt: Date;
+  deviceId: string;
 };
 
 export class AuthService {
@@ -63,8 +64,16 @@ export class AuthService {
       throw new HttpError(401, "Invalid refresh session.", "INVALID_REFRESH_SESSION");
     }
 
-    await this.refreshSessionService.revokeSession(session);
-    return this.issueSession(session.adminUser, context);
+    const accessToken = this.tokenService.issueAccessToken(session.adminUser);
+    const rotatedSession = await this.refreshSessionService.rotateSession(session, context);
+
+    return {
+      admin: this.toSafeAdmin(session.adminUser),
+      accessToken,
+      refreshToken: rotatedSession.refreshToken,
+      refreshTokenExpiresAt: rotatedSession.session.expiresAt,
+      deviceId: rotatedSession.session.deviceId
+    };
   }
 
   async logout(refreshToken?: string) {
@@ -96,7 +105,8 @@ export class AuthService {
       admin: this.toSafeAdmin(admin),
       accessToken,
       refreshToken,
-      refreshTokenExpiresAt: session.expiresAt
+      refreshTokenExpiresAt: session.expiresAt,
+      deviceId: session.deviceId
     };
   }
 

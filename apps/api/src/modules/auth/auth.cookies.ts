@@ -2,6 +2,9 @@ import { Response } from "express";
 import { env } from "../../config/env.js";
 
 export const REFRESH_COOKIE_NAME = "qw_refresh_token";
+export const DEVICE_COOKIE_NAME = "qw_device_id";
+
+const DEVICE_COOKIE_MAX_AGE = 1000 * 60 * 60 * 24 * 365;
 
 const cookieOptions = {
   httpOnly: true,
@@ -17,6 +20,13 @@ export function setRefreshTokenCookie(res: Response, token: string, expiresAt: D
     ...cookieOptions,
     expires: expiresAt,
     maxAge
+  });
+}
+
+export function setDeviceCookie(res: Response, deviceId: string) {
+  res.cookie(DEVICE_COOKIE_NAME, deviceId, {
+    ...cookieOptions,
+    maxAge: DEVICE_COOKIE_MAX_AGE
   });
 }
 

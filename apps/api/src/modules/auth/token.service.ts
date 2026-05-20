@@ -41,6 +41,10 @@ export class TokenService {
     return crypto.randomBytes(48).toString("base64url");
   }
 
+  createDeviceId() {
+    return crypto.randomBytes(32).toString("base64url");
+  }
+
   hashRefreshToken(token: string) {
     return crypto.createHash("sha256").update(token).digest("hex");
   }

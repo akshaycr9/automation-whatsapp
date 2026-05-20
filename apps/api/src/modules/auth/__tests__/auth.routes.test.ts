@@ -4,7 +4,7 @@ import request from "supertest";
 import { errorHandler } from "../../../middleware/error-handler.js";
 import { getCookieValue } from "../../../test/test-utils.js";
 import { AuthController } from "../auth.controller.js";
-import { REFRESH_COOKIE_NAME } from "../auth.cookies.js";
+import { DEVICE_COOKIE_NAME, REFRESH_COOKIE_NAME } from "../auth.cookies.js";
 import { createAuthMiddleware } from "../auth.middleware.js";
 import { AuthService } from "../auth.service.js";
 import { PasswordService } from "../password.service.js";
@@ -66,7 +66,7 @@ it("POST /api/auth/login returns access token and safe admin profile", async () 
   expect(response.body.data.admin.passwordHash).toBeUndefined();
 });
 
-it("POST /api/auth/login sets httpOnly refresh cookie", async () => {
+it("POST /api/auth/login sets httpOnly refresh and device cookies", async () => {
   const { app } = await createRoutesTestApp();
 
   const response = await request(app)
@@ -76,6 +76,7 @@ it("POST /api/auth/login sets httpOnly refresh cookie", async () => {
 
   const cookie = response.headers["set-cookie"] as string[] | undefined;
   expect(cookie?.some((value) => value.includes(`${REFRESH_COOKIE_NAME}=`))).toBe(true);
+  expect(cookie?.some((value) => value.includes(`${DEVICE_COOKIE_NAME}=`))).toBe(true);
   expect(cookie?.some((value) => value.includes("HttpOnly"))).toBe(true);
 });
 
@@ -156,7 +157,7 @@ it("POST /api/auth/refresh rejects expired refresh session", async () => {
   await request(app).post("/api/auth/refresh").set("Cookie", `${REFRESH_COOKIE_NAME}=${refreshToken}`).expect(401);
 });
 
-it("POST /api/auth/refresh rotates refresh token and revokes old session", async () => {
+it("POST /api/auth/refresh rotates refresh token in the same device session", async () => {
   const { app, repository } = await createRoutesTestApp();
   const tokenService = new TokenService();
   const loginResponse = await request(app)
@@ -164,17 +165,42 @@ it("POST /api/auth/refresh rotates refresh token and revokes old session", async
     .send({ email: "admin@example.com", password: "ValidPass@123" })
     .expect(200);
   const refreshToken = getCookieValue(loginResponse.headers["set-cookie"] as string[] | undefined, REFRESH_COOKIE_NAME);
+  const deviceId = getCookieValue(loginResponse.headers["set-cookie"] as string[] | undefined, DEVICE_COOKIE_NAME);
   const oldTokenHash = tokenService.hashRefreshToken(refreshToken ?? "");
+  const oldSession = repository.refreshSessions.get(oldTokenHash);
+
+  const response = await request(app)
+    .post("/api/auth/refresh")
+    .set("Cookie", `${REFRESH_COOKIE_NAME}=${refreshToken}; ${DEVICE_COOKIE_NAME}=${deviceId}`)
+    .expect(200);
+  const nextRefreshToken = getCookieValue(response.headers["set-cookie"] as string[] | undefined, REFRESH_COOKIE_NAME);
+  const nextTokenHash = tokenService.hashRefreshToken(nextRefreshToken ?? "");
+  const updatedSession = repository.refreshSessions.get(nextTokenHash);
+
+  expect(repository.refreshSessions.size).toBe(1);
+  expect(repository.refreshSessions.get(oldTokenHash)).toBeUndefined();
+  expect(updatedSession?.id).toBe(oldSession?.id);
+  expect(updatedSession?.deviceId).toBe(deviceId);
+  expect(updatedSession?.revokedAt).toBeNull();
+  expect(nextRefreshToken).toEqual(expect.any(String));
+  expect(nextRefreshToken).not.toBe(refreshToken);
+});
+
+it("POST /api/auth/refresh repairs a missing device cookie from the valid refresh session", async () => {
+  const { app } = await createRoutesTestApp();
+  const loginResponse = await request(app)
+    .post("/api/auth/login")
+    .send({ email: "admin@example.com", password: "ValidPass@123" })
+    .expect(200);
+  const refreshToken = getCookieValue(loginResponse.headers["set-cookie"] as string[] | undefined, REFRESH_COOKIE_NAME);
+  const deviceId = getCookieValue(loginResponse.headers["set-cookie"] as string[] | undefined, DEVICE_COOKIE_NAME);
 
   const response = await request(app)
     .post("/api/auth/refresh")
     .set("Cookie", `${REFRESH_COOKIE_NAME}=${refreshToken}`)
     .expect(200);
-  const nextRefreshToken = getCookieValue(response.headers["set-cookie"] as string[] | undefined, REFRESH_COOKIE_NAME);
 
-  expect(repository.refreshSessions.get(oldTokenHash)?.revokedAt).toBeInstanceOf(Date);
-  expect(nextRefreshToken).toEqual(expect.any(String));
-  expect(nextRefreshToken).not.toBe(refreshToken);
+  expect(getCookieValue(response.headers["set-cookie"] as string[] | undefined, DEVICE_COOKIE_NAME)).toBe(deviceId);
 });
 
 it("POST /api/auth/refresh rejects missing/invalid cookie", async () => {

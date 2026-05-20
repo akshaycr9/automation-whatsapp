@@ -6,6 +6,7 @@ import { buildAdminUser } from "../../../test/factories/user.factory.js";
 import { InMemoryAuthRepository } from "./auth-test-utils.js";
 
 const sessionContext = {
+  deviceId: "device_macbook",
   userAgent: "vitest",
   ipAddress: "127.0.0.1"
 };
@@ -139,15 +140,51 @@ it("refresh token is stored hashed, not plaintext", async () => {
   expect(session?.tokenHash).not.toBe(result.refreshToken);
 });
 
-it("refresh token rotation revokes old session", async () => {
+it("refresh token rotation updates the same device session", async () => {
   const { repository, service } = await createService();
   const loginResult = await service.login({ email: "admin@example.com", password: "ValidPass@123" }, sessionContext);
   const oldSession = [...repository.refreshSessions.values()][0];
 
-  await service.refresh(loginResult.refreshToken, sessionContext);
+  const refreshResult = await service.refresh(loginResult.refreshToken, sessionContext);
+  const updatedSession = [...repository.refreshSessions.values()][0];
 
-  expect(repository.refreshSessions.get(oldSession?.tokenHash ?? "")?.revokedAt).toBeInstanceOf(Date);
+  expect(repository.refreshSessions.size).toBe(1);
+  expect(updatedSession?.id).toBe(oldSession?.id);
+  expect(updatedSession?.tokenHash).not.toBe(oldSession?.tokenHash);
+  expect(updatedSession?.revokedAt).toBeNull();
+  await expect(service.refresh(loginResult.refreshToken, sessionContext)).rejects.toMatchObject({
+    code: "INVALID_REFRESH_SESSION"
+  });
+  await expect(service.refresh(refreshResult.refreshToken, sessionContext)).resolves.toMatchObject({
+    admin: { email: "admin@example.com" }
+  });
+});
+
+it("login from a second device creates one additional refresh session", async () => {
+  const { repository, service } = await createService();
+
+  await service.login({ email: "admin@example.com", password: "ValidPass@123" }, sessionContext);
+  await service.login(
+    { email: "admin@example.com", password: "ValidPass@123" },
+    { ...sessionContext, deviceId: "device_iphone" }
+  );
+
   expect(repository.refreshSessions.size).toBe(2);
+  expect([...repository.refreshSessions.values()].map((session) => session.deviceId).sort()).toEqual([
+    "device_iphone",
+    "device_macbook"
+  ]);
+});
+
+it("repeated refreshes keep one refresh session per device", async () => {
+  const { repository, service } = await createService();
+  let result = await service.login({ email: "admin@example.com", password: "ValidPass@123" }, sessionContext);
+
+  for (let index = 0; index < 3; index += 1) {
+    result = await service.refresh(result.refreshToken, sessionContext);
+  }
+
+  expect(repository.refreshSessions.size).toBe(1);
 });
 
 it("logout revokes refresh session", async () => {

@@ -121,6 +121,7 @@ model AdminUser {
 model RefreshSession {
   id          String    @id @default(cuid())
   adminUserId String
+  deviceId    String
   tokenHash   String    @unique
   userAgent   String?
   ipAddress   String?
@@ -133,6 +134,7 @@ model RefreshSession {
   @@index([adminUserId])
   @@index([expiresAt])
   @@index([revokedAt])
+  @@unique([adminUserId, deviceId])
 }
 
 model WhatsAppTemplate {
