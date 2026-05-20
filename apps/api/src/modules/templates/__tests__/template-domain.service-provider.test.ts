@@ -91,7 +91,7 @@ it("submits created templates to the provider and updates status", async () => {
   });
   expect(repository.updateProviderSubmissionResult).toHaveBeenCalledWith(
     "tmpl_123",
-    expect.objectContaining({ metaTemplateId: "meta_123", status: TemplateStatus.PENDING }),
+    expect.objectContaining({ metaTemplateId: "meta_123", wabaId: "waba_123", status: TemplateStatus.PENDING }),
     context
   );
   expect(repository.createEvent).toHaveBeenCalledWith(

@@ -80,6 +80,7 @@ export class TemplateDomainService {
   async createLocalTemplate(input: CreateTemplateInput, context: TemplateScope) {
     const data = this.prepareCreateData(input, context);
     await this.checkDuplicateName(input.name, input.languageCode, context);
+    const credentials = this.credentialResolver.resolve(context);
     data.template.status = TemplateStatus.SUBMITTING;
     const template = await this.repository.createWithRelations(data, context);
     const payload = mapCreateTemplateInputToMetaPayload(input);
@@ -91,7 +92,7 @@ export class TemplateDomainService {
 
     try {
       const providerResult = await this.providerAdapter.createTemplate({
-        credentials: this.credentialResolver.resolve(context),
+        credentials,
         payload
       });
       await this.repository.updateProviderPayload(payloadRecord.id, {
@@ -102,6 +103,7 @@ export class TemplateDomainService {
         template.id,
         {
           metaTemplateId: providerResult.providerTemplateId,
+          wabaId: credentials.wabaId,
           status: providerResult.status,
           lastSyncedAt: new Date()
         },

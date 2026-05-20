@@ -305,3 +305,63 @@ it("returns a safe provider error when Meta create fails", async () => {
     expect.objectContaining({ errorMessage: "Sensitive provider token error" })
   );
 });
+
+it("does not persist a template when Meta credentials are missing", async () => {
+  const repository = {
+    findAnyByNameAndLanguage: vi.fn().mockResolvedValue(null),
+    createWithRelations: vi.fn(),
+    createProviderPayload: vi.fn()
+  };
+  const factoryResolver = {
+    build: vi.fn().mockReturnValue({
+      template: {
+        name: "order_update",
+        displayName: "Order Update",
+        category: TemplateCategory.UTILITY,
+        type: TemplateType.TEXT,
+        languageCode: "en",
+        status: TemplateStatus.DRAFT,
+        createdById: "admin_123",
+        updatedById: "admin_123"
+      },
+      components: [{ componentType: TemplateComponentType.BODY, text: "Hi {{1}}", sortOrder: 0 }],
+      variables: [{ componentType: TemplateComponentType.BODY, position: 1, placeholder: "{{1}}", sampleValue: "A" }],
+      buttons: [],
+      event: { eventType: TemplateEventType.CREATED, newStatus: TemplateStatus.DRAFT, createdById: "admin_123" }
+    })
+  };
+  const credentialResolver = {
+    resolve: vi.fn(() => {
+      throw Object.assign(new Error("Meta WhatsApp template credentials are not configured."), {
+        statusCode: 503,
+        code: "TEMPLATE_PROVIDER_ERROR"
+      });
+    })
+  };
+  const service = new TemplatesService(
+    repository as never,
+    factoryResolver as never,
+    { createTemplate: vi.fn() } as never,
+    credentialResolver as never
+  );
+
+  await expect(
+    service.createLocalTemplate(
+      {
+        name: "order_update",
+        displayName: "Order Update",
+        category: TemplateCategory.UTILITY,
+        type: TemplateType.TEXT,
+        languageCode: "en",
+        components: { body: { text: "Hi {{1}}" }, buttons: [] },
+        variables: [{ componentType: TemplateComponentType.BODY, position: 1, placeholder: "{{1}}", sampleValue: "A" }]
+      },
+      { adminUserId: "admin_123" }
+    )
+  ).rejects.toMatchObject({
+    code: "TEMPLATE_PROVIDER_ERROR",
+    statusCode: 503
+  });
+  expect(repository.createWithRelations).not.toHaveBeenCalled();
+  expect(repository.createProviderPayload).not.toHaveBeenCalled();
+});

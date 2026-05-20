@@ -69,12 +69,11 @@ Template endpoints return normalized DTOs and do not expose raw Meta response sh
 - `JWT_ACCESS_SECRET`
 - `WEB_APP_URL`
 - `API_URL`
-- `META_GRAPH_API_VERSION`
-- `META_WABA_ID`
 - `META_ACCESS_TOKEN`
 - `META_APP_SECRET`
 - `META_VERIFY_TOKEN`
-- `META_WEBHOOK_VERIFY_DISABLED` for local development only; ignored in production.
+- `WHATSAPP_BUSINESS_ACCOUNT_ID`
+- `WHATSAPP_PHONE_NUMBER_ID`
 
 ## Operational Notes
 

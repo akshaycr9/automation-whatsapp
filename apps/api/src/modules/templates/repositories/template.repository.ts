@@ -214,6 +214,7 @@ export class TemplateRepository {
     id: string,
     data: {
       metaTemplateId?: string | null;
+      wabaId?: string | null;
       status: TemplateStatus;
       rejectionReason?: string | null;
       lastSyncedAt?: Date | null;
