@@ -13,14 +13,31 @@ it("can construct the templates service placeholder", () => {
   expect(new TemplatesService()).toBeInstanceOf(TemplatesService);
 });
 
-it("syncs Meta templates and creates lifecycle events when status changes", async () => {
+it("syncs only local templates and creates lifecycle events when status changes", async () => {
+  const localTemplate = {
+    id: "tmpl_123",
+    adminUserId: "admin_123",
+    metaTemplateId: null,
+    name: "order_update",
+    displayName: "Order Update",
+    category: TemplateCategory.UTILITY,
+    type: TemplateType.TEXT,
+    languageCode: "en",
+    status: TemplateStatus.PENDING,
+    qualityRating: TemplateQualityRating.UNKNOWN,
+    rejectionReason: null,
+    allowCategoryChange: false,
+    lastSyncedAt: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    components: [],
+    variables: [],
+    buttons: []
+  };
   const repository = {
+    findAllForSync: vi.fn().mockResolvedValue([localTemplate]),
     createProviderPayload: vi.fn().mockResolvedValue({ id: "payload_123" }),
     updateProviderPayload: vi.fn().mockResolvedValue({}),
-    findByProviderIdentity: vi.fn().mockResolvedValue({
-      id: "tmpl_123",
-      status: TemplateStatus.PENDING
-    }),
     updateFromProvider: vi.fn().mockResolvedValue({}),
     createFromProvider: vi.fn(),
     createEvent: vi.fn().mockResolvedValue({})
@@ -32,6 +49,17 @@ it("syncs Meta templates and creates lifecycle events when status changes", asyn
           providerTemplateId: "meta_123",
           name: "order_update",
           category: TemplateCategory.UTILITY,
+          type: TemplateType.TEXT,
+          languageCode: "en",
+          status: TemplateStatus.APPROVED,
+          qualityRating: TemplateQualityRating.GREEN,
+          rejectionReason: null,
+          raw: { status: "APPROVED" }
+        },
+        {
+          providerTemplateId: "meta_foreign",
+          name: "legacy_template_from_other_app",
+          category: TemplateCategory.MARKETING,
           type: TemplateType.TEXT,
           languageCode: "en",
           status: TemplateStatus.APPROVED,
@@ -61,6 +89,8 @@ it("syncs Meta templates and creates lifecycle events when status changes", asyn
   const result = await service.syncTemplates({ adminUserId: "admin_123" });
 
   expect(result.data).toEqual({ syncedCount: 1, createdCount: 0, updatedCount: 1, failedCount: 0 });
+  expect(repository.findAllForSync).toHaveBeenCalledWith({ adminUserId: "admin_123" });
+  expect(repository.createFromProvider).not.toHaveBeenCalled();
   expect(repository.updateFromProvider).toHaveBeenCalledWith(
     "tmpl_123",
     expect.objectContaining({
@@ -77,6 +107,56 @@ it("syncs Meta templates and creates lifecycle events when status changes", asyn
   expect(repository.createEvent).toHaveBeenCalledWith(
     expect.objectContaining({ eventType: TemplateEventType.APPROVED, oldStatus: TemplateStatus.PENDING })
   );
+});
+
+it("does not create local rows for provider templates missing from the local database", async () => {
+  const repository = {
+    findAllForSync: vi.fn().mockResolvedValue([]),
+    createProviderPayload: vi.fn().mockResolvedValue({ id: "payload_123" }),
+    updateProviderPayload: vi.fn().mockResolvedValue({}),
+    updateFromProvider: vi.fn(),
+    createFromProvider: vi.fn(),
+    createEvent: vi.fn().mockResolvedValue({})
+  };
+  const providerAdapter = {
+    listTemplates: vi.fn().mockResolvedValue({
+      templates: [
+        {
+          providerTemplateId: "meta_foreign",
+          name: "legacy_template_from_other_app",
+          category: TemplateCategory.MARKETING,
+          type: TemplateType.TEXT,
+          languageCode: "en",
+          status: TemplateStatus.APPROVED,
+          qualityRating: TemplateQualityRating.GREEN,
+          rejectionReason: null,
+          raw: { status: "APPROVED" }
+        }
+      ],
+      raw: { data: [] },
+      statusCode: 200
+    })
+  };
+  const credentialResolver = {
+    resolve: vi.fn().mockReturnValue({
+      graphApiVersion: "v21.0",
+      wabaId: "waba_123",
+      accessToken: "token"
+    })
+  };
+  const service = new TemplatesService(
+    repository as never,
+    undefined as never,
+    providerAdapter as never,
+    credentialResolver as never
+  );
+
+  const result = await service.syncTemplates({ adminUserId: "admin_123" });
+
+  expect(result.data).toEqual({ syncedCount: 0, createdCount: 0, updatedCount: 0, failedCount: 0 });
+  expect(providerAdapter.listTemplates).not.toHaveBeenCalled();
+  expect(repository.createFromProvider).not.toHaveBeenCalled();
+  expect(repository.updateFromProvider).not.toHaveBeenCalled();
 });
 
 it("retry submission reconciles an existing Meta template before creating a duplicate", async () => {

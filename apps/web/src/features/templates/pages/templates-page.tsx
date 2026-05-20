@@ -5,10 +5,12 @@ import { TemplateListHeader } from "../components/TemplateList/TemplateListHeade
 import { TemplateListSkeleton } from "../components/TemplateList/TemplateListSkeleton";
 import { TemplateListToolbar } from "../components/TemplateList/TemplateListToolbar";
 import { TemplateTable } from "../components/TemplateList/TemplateTable";
+import { TemplateDetailModal } from "../components/TemplateList/TemplateDetailModal";
 import { useDeleteTemplate } from "../hooks/useDeleteTemplate";
 import { useRetryTemplateSubmission } from "../hooks/useRetryTemplateSubmission";
 import { useSyncTemplate } from "../hooks/useSyncTemplate";
 import { useSyncTemplates } from "../hooks/useSyncTemplates";
+import { useTemplate } from "../hooks/useTemplate";
 import { useTemplates } from "../hooks/useTemplates";
 import { useTemplatesListPageState } from "../hooks/useTemplatesListPageState";
 
@@ -20,6 +22,8 @@ export function TemplatesListPage() {
   const deleteTemplate = useDeleteTemplate();
   const templates = templatesQuery.data ?? [];
   const listState = useTemplatesListPageState(templates);
+  const selectedTemplateDetail = useTemplate(listState.selectedTemplate?.id);
+  const selectedTemplate = selectedTemplateDetail.data ?? listState.selectedTemplate;
 
   return (
     <section aria-labelledby="templates-list-title" className="space-y-4">
@@ -73,6 +77,12 @@ export function TemplatesListPage() {
           />
         ) : null}
       </SectionErrorBoundary>
+
+      <TemplateDetailModal
+        isLoading={selectedTemplateDetail.isLoading}
+        template={selectedTemplate}
+        onClose={listState.closeTemplate}
+      />
     </section>
   );
 }

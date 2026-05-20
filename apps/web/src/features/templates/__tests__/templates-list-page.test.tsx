@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { delay, http, HttpResponse } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -10,7 +10,7 @@ import { mockTemplates } from "../data/mockTemplates";
 import { TemplatesListPage } from "../pages/templates-page";
 import type { Template } from "../types/template.types";
 
-function renderTemplatesList(templates = mockTemplates) {
+function renderTemplatesList(templates = mockTemplates, detailTemplates = templates) {
   server.use(
     http.post("http://localhost:4000/api/auth/refresh", () =>
       HttpResponse.json({
@@ -26,6 +26,12 @@ function renderTemplatesList(templates = mockTemplates) {
         pagination: { page: 1, limit: templates.length, total: templates.length, totalPages: 1 }
       })
     ),
+    http.get("http://localhost:4000/api/templates/:id", ({ params }) => {
+      const template = detailTemplates.find((item) => item.id === params.id);
+      return template
+        ? HttpResponse.json({ data: template })
+        : HttpResponse.json({ message: "Not found" }, { status: 404 });
+    }),
     http.post("http://localhost:4000/api/templates/sync", () =>
       HttpResponse.json({
         data: { syncedCount: 0, createdCount: 0, updatedCount: 0, failedCount: 0 },
@@ -40,8 +46,7 @@ function renderTemplatesList(templates = mockTemplates) {
   const router = createMemoryRouter(
     [
       { path: "/templates", element: <TemplatesListPage /> },
-      { path: "/templates/create", element: <div>Create template route</div> },
-      { path: "/templates/:id", element: <div>Template detail route</div> }
+      { path: "/templates/create", element: <div>Create template route</div> }
     ],
     { initialEntries: ["/templates"] }
   );
@@ -115,14 +120,65 @@ it("navigates to the create template route", async () => {
   expect(router.state.location.pathname).toBe("/templates/create");
 });
 
-it("navigates to detail when a template row is clicked", async () => {
+it("opens template details in a modal when a template row is clicked", async () => {
   const user = userEvent.setup();
-  const router = renderTemplatesList();
+  const templateWithPreview: Template = {
+    ...mockTemplates[0]!,
+    components: [
+      { id: "header", type: "HEADER", format: "TEXT", text: "Order {{1}} confirmed" },
+      {
+        id: "body",
+        type: "BODY",
+        text: "Hi {{1}}, your order is ready.",
+        variables: [{ key: "customerName", index: 1, token: "{{1}}", sampleValue: "Akshay" }]
+      },
+      { id: "footer", type: "FOOTER", text: "Reply STOP to opt out." },
+      { id: "buttons", type: "BUTTONS", buttons: [{ id: "track", type: "URL", text: "Track order" }] }
+    ]
+  };
+  const templateSummary: Template = { ...templateWithPreview };
+  delete templateSummary.components;
+  const router = renderTemplatesList([templateSummary], [templateWithPreview]);
 
   await screen.findAllByText("Order confirmation");
   await user.click(screen.getAllByText("Order confirmation")[0]!);
 
-  expect(router.state.location.pathname).toBe("/templates/tmpl_order_confirmation_v1");
+  expect(router.state.location.pathname).toBe("/templates");
+  const dialog = screen.getByRole("dialog", { name: "Order confirmation" });
+  expect(dialog).toBeInTheDocument();
+  expect(within(dialog).queryByText("order_confirmation_v1")).not.toBeInTheDocument();
+  expect(within(dialog).getByText("Utility")).toBeInTheDocument();
+  expect(await screen.findByText("Order [Akshay] confirmed")).toBeInTheDocument();
+  expect(await screen.findByText("Hi [Akshay], your order is ready.")).toBeInTheDocument();
+  expect(await screen.findByText("Reply STOP to opt out.")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /track order/i })).toBeInTheDocument();
+  expect(screen.queryByText("Template message is not available.")).not.toBeInTheDocument();
+});
+
+it("closes the template details modal from the close icon", async () => {
+  const user = userEvent.setup();
+  renderTemplatesList();
+
+  await screen.findAllByText("Order confirmation");
+  await user.click(screen.getAllByText("Order confirmation")[0]!);
+  expect(screen.getByRole("dialog", { name: "Order confirmation" })).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Close template details" }));
+
+  expect(screen.queryByRole("dialog", { name: "Order confirmation" })).not.toBeInTheDocument();
+});
+
+it("closes the template details modal with Escape", async () => {
+  const user = userEvent.setup();
+  renderTemplatesList();
+
+  await screen.findAllByText("Order confirmation");
+  await user.click(screen.getAllByText("Order confirmation")[0]!);
+  expect(screen.getByRole("dialog", { name: "Order confirmation" })).toBeInTheDocument();
+
+  await user.keyboard("{Escape}");
+
+  expect(screen.queryByRole("dialog", { name: "Order confirmation" })).not.toBeInTheDocument();
 });
 
 it("renders only duplicate and delete row actions", async () => {

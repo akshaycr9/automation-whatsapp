@@ -23,7 +23,7 @@ it("renders the create template screen", () => {
 
   expect(screen.getByRole("heading", { name: "Create Template" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Basic information" })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "WhatsApp preview" })).toBeInTheDocument();
+  expect(screen.getByRole("complementary", { name: "Template message" })).toBeInTheDocument();
   expect(screen.getByLabelText("Template name")).toHaveValue("");
   expect(screen.getByLabelText("Display name")).toHaveValue("");
   expect(screen.getByLabelText("Category")).toHaveValue("");

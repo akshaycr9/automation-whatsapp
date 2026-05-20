@@ -392,94 +392,83 @@ export class TemplateDomainService {
   }
 
   async syncTemplates(context: TemplateScope) {
+    const localTemplates = await this.repository.findAllForSync(context);
     const payloadRecord = await this.repository.createProviderPayload({
       action: TemplateProviderAction.SYNC,
-      requestPayload: { operation: "listTemplates" }
+      requestPayload: {
+        operation: "syncLocalTemplates",
+        templateIds: localTemplates.map((template) => template.id)
+      }
     });
 
     try {
-      const providerResult = await this.providerAdapter.listTemplates({
-        credentials: this.credentialResolver.resolve(context)
-      });
-      let createdCount = 0;
+      if (localTemplates.length === 0) {
+        await this.repository.updateProviderPayload(payloadRecord.id, {
+          responsePayload: { skipped: true, reason: "No local templates to sync." },
+          statusCode: 200
+        });
+        await this.repository.createEvent({
+          eventType: TemplateEventType.SYNCED,
+          message: "Local templates synced from Meta.",
+          metadata: { createdCount: 0, updatedCount: 0, syncedCount: 0, failedCount: 0 },
+          createdById: context.adminUserId
+        });
+
+        return {
+          data: {
+            syncedCount: 0,
+            createdCount: 0,
+            updatedCount: 0,
+            failedCount: 0
+          },
+          message: "Templates synced successfully"
+        };
+      }
+
+      const credentials = this.credentialResolver.resolve(context);
+      const providerResult = await this.providerAdapter.listTemplates({ credentials });
       let updatedCount = 0;
       let failedCount = 0;
       const syncedAt = new Date();
-      const credentials = this.credentialResolver.resolve(context);
 
-      for (const providerTemplate of providerResult.templates) {
-        if (!providerTemplate.name) {
+      for (const localTemplate of localTemplates) {
+        const providerTemplate = providerResult.templates.find((candidate) =>
+          localTemplate.metaTemplateId
+            ? candidate.providerTemplateId === localTemplate.metaTemplateId
+            : candidate.name === localTemplate.name && candidate.languageCode === localTemplate.languageCode
+        );
+
+        if (!providerTemplate) {
           failedCount += 1;
           continue;
         }
 
-        const existing = await this.repository.findByProviderIdentity(
+        const rawStatus = (providerTemplate.raw as { status?: string } | null)?.status;
+        const status = isKnownMetaTemplateStatus(rawStatus) ? providerTemplate.status : localTemplate.status;
+        await this.repository.updateFromProvider(
+          localTemplate.id,
           {
             metaTemplateId: providerTemplate.providerTemplateId,
-            name: providerTemplate.name,
-            languageCode: providerTemplate.languageCode
+            wabaId: credentials.wabaId,
+            category: providerTemplate.category,
+            type: providerTemplate.type,
+            languageCode: providerTemplate.languageCode,
+            status,
+            qualityRating: providerTemplate.qualityRating,
+            rejectionReason: providerTemplate.rejectionReason,
+            lastSyncedAt: syncedAt
           },
           context
         );
-
-        const rawStatus = (providerTemplate.raw as { status?: string } | null)?.status;
-        const status = isKnownMetaTemplateStatus(rawStatus)
-          ? providerTemplate.status
-          : (existing?.status ?? TemplateStatus.ERROR);
-
-        if (existing) {
-          const oldStatus = existing.status;
-          await this.repository.updateFromProvider(
-            existing.id,
-            {
-              metaTemplateId: providerTemplate.providerTemplateId,
-              wabaId: credentials.wabaId,
-              category: providerTemplate.category,
-              type: providerTemplate.type,
-              languageCode: providerTemplate.languageCode,
-              status,
-              qualityRating: providerTemplate.qualityRating,
-              rejectionReason: providerTemplate.rejectionReason,
-              lastSyncedAt: syncedAt
-            },
-            context
-          );
-          updatedCount += 1;
-          await this.createProviderStatusEvents({
-            templateId: existing.id,
-            oldStatus,
-            newStatus: status,
-            source: "sync",
-            metadata: { rawStatus: rawStatus ?? null },
-            createdById: context.adminUserId
-          });
-        } else {
-          const created = await this.repository.createFromProvider(
-            {
-              metaTemplateId: providerTemplate.providerTemplateId,
-              wabaId: credentials.wabaId,
-              name: providerTemplate.name,
-              displayName: providerTemplate.name,
-              category: providerTemplate.category,
-              type: providerTemplate.type,
-              languageCode: providerTemplate.languageCode,
-              status,
-              qualityRating: providerTemplate.qualityRating,
-              rejectionReason: providerTemplate.rejectionReason,
-              lastSyncedAt: syncedAt
-            },
-            context
-          );
-          createdCount += 1;
-          await this.repository.createEvent({
-            templateId: created.id,
-            eventType: TemplateEventType.SYNCED,
-            newStatus: status,
-            message: "Template created locally from Meta sync.",
-            metadata: { rawStatus: rawStatus ?? null },
-            createdById: context.adminUserId
-          });
-        }
+        updatedCount += 1;
+        await this.createProviderStatusEvents({
+          templateId: localTemplate.id,
+          oldStatus: localTemplate.status,
+          newStatus: status,
+          source: "sync",
+          metadata: { rawStatus: rawStatus ?? null },
+          createdById: context.adminUserId
+        });
       }
 
       await this.repository.updateProviderPayload(payloadRecord.id, {
@@ -488,15 +477,15 @@ export class TemplateDomainService {
       });
       await this.repository.createEvent({
         eventType: TemplateEventType.SYNCED,
-        message: "Templates synced from Meta.",
-        metadata: { createdCount, updatedCount, syncedCount: providerResult.templates.length, failedCount },
+        message: "Local templates synced from Meta.",
+        metadata: { createdCount: 0, updatedCount, syncedCount: localTemplates.length, failedCount },
         createdById: context.adminUserId
       });
 
       return {
         data: {
-          syncedCount: providerResult.templates.length,
-          createdCount,
+          syncedCount: localTemplates.length,
+          createdCount: 0,
           updatedCount,
           failedCount
         },
