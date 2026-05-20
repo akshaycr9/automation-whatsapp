@@ -159,7 +159,7 @@ CREATE INDEX "WhatsAppTemplate_wabaId_idx" ON "WhatsAppTemplate"("wabaId");
 CREATE INDEX "WhatsAppTemplate_deletedAt_idx" ON "WhatsAppTemplate"("deletedAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "WhatsAppTemplateComponent_templateId_componentType_sortOrder_key" ON "WhatsAppTemplateComponent"("templateId", "componentType", "sortOrder");
+CREATE UNIQUE INDEX "WhatsAppTemplateComponent_templateId_componentType_sortOrde_key" ON "WhatsAppTemplateComponent"("templateId", "componentType", "sortOrder");
 
 -- CreateIndex
 CREATE INDEX "WhatsAppTemplateComponent_templateId_idx" ON "WhatsAppTemplateComponent"("templateId");

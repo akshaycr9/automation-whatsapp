@@ -2,7 +2,7 @@
 
 ## Login
 
-Admin visits `/login`, submits email and password, and receives an in-memory access token while the backend sets an httpOnly refresh cookie. Protected app routes refresh the session once on startup before deciding whether to render private content or redirect to `/login`. Logout revokes the refresh session, clears in-memory auth state, and returns the admin to `/login`.
+Admin visits `/login`, submits email and password, and receives an in-memory access token while the backend sets httpOnly refresh and device cookies. Protected app routes refresh the session once on startup before deciding whether to render private content or redirect to `/login`. Refreshes update the current device session in place. Logout revokes the refresh session, clears in-memory auth state, and returns the admin to `/login`.
 
 Manual verification checklist:
 
@@ -16,7 +16,7 @@ Manual verification checklist:
 8. Refresh the browser on the dashboard; a valid refresh cookie should keep the admin logged in.
 9. Click the topbar sign-out avatar; the app should return to `/login`.
 10. Confirm `localStorage` and `sessionStorage` contain no auth tokens.
-11. Confirm the `qw_refresh_token` cookie is httpOnly and scoped to `/api/auth`.
+11. Confirm the `qw_refresh_token` and `qw_device_id` cookies are httpOnly and scoped to `/api/auth`.
 12. Confirm `/api/auth/me` returns `401` without a bearer token or with an invalid token.
 13. Confirm repeated invalid logins trigger lockout or rate-limit behavior.
 
