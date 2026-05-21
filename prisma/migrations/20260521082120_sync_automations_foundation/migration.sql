@@ -1,0 +1,2 @@
+-- RenameIndex
+ALTER INDEX "AutomationVariableMapping_automationId_componentType_variable_k" RENAME TO "AutomationVariableMapping_automationId_componentType_variab_key";
