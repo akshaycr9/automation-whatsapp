@@ -92,6 +92,72 @@ enum TemplateEventType {
   ERROR
 }
 
+enum AutomationFlowKey {
+  ORDER_FLOW
+  COD_FLOW
+  ABANDONED_CART_FLOW
+}
+
+enum AutomationKey {
+  ORDER_CONFIRMED
+  ORDER_FULFILLED
+  ORDER_CANCELLED
+  COD_ORDER_CONFIRMATION
+  COD_ORDER_CONFIRMED
+  COD_ORDER_CANCELLED
+  COD_ORDER_FOLLOW_UP
+  ABANDONED_CART_1
+  ABANDONED_CART_2
+  ABANDONED_CART_3
+}
+
+enum AutomationTriggerSource {
+  SHOPIFY
+  WHATSAPP
+  SYSTEM
+}
+
+enum AutomationTriggerEvent {
+  ORDER_CREATED
+  ORDER_FULFILLED
+  ORDER_CANCELLED
+  COD_ORDER_CREATED
+  CHECKOUT_ABANDONED
+  BUTTON_REPLY
+}
+
+enum AutomationResourceType {
+  ORDER
+  CHECKOUT
+  CUSTOMER
+}
+
+enum AutomationJobStatus {
+  PENDING
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  SKIPPED
+  CANCELLED
+}
+
+enum AutomationComponentType {
+  HEADER
+  BODY
+  BUTTON
+}
+
+enum AutomationActionStateValue {
+  PENDING_CONFIRMATION
+  CONFIRMED
+  CANCELLED
+  FOLLOW_UP_SENT
+  ABANDONED_ACTIVE
+  RECOVERED
+  EXPIRED
+}
+
 model Placeholder {
   id        String   @id @default(cuid())
   label     String
@@ -131,10 +197,10 @@ model RefreshSession {
   updatedAt   DateTime  @updatedAt
   adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
 
+  @@unique([adminUserId, deviceId])
   @@index([adminUserId])
   @@index([expiresAt])
   @@index([revokedAt])
-  @@unique([adminUserId, deviceId])
 }
 
 model WhatsAppTemplate {
@@ -165,6 +231,7 @@ model WhatsAppTemplate {
   buttons             WhatsAppTemplateButton[]
   providerPayloads    WhatsAppTemplateProviderPayload[]
   events              WhatsAppTemplateEvent[]
+  automations         Automation[]
 
   @@unique([adminUserId, name, languageCode])
   @@index([adminUserId, status])
@@ -269,4 +336,149 @@ model WhatsAppTemplateEvent {
   @@index([templateId])
   @@index([eventType])
   @@index([createdAt])
+}
+
+model AutomationFlow {
+  id          String            @id @default(cuid())
+  key         AutomationFlowKey @unique
+  name        String
+  description String
+  sortOrder   Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  automations Automation[]
+
+  @@index([sortOrder])
+}
+
+model Automation {
+  id                  String                      @id @default(cuid())
+  flowId              String
+  key                 AutomationKey               @unique
+  name                String
+  description         String
+  triggerSource       AutomationTriggerSource
+  triggerEvent        AutomationTriggerEvent
+  isEnabled           Boolean                     @default(false)
+  templateId          String?
+  delayMinutes        Int                         @default(0)
+  sortOrder           Int                         @default(0)
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  flow                AutomationFlow              @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  template            WhatsAppTemplate?           @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  variableMappings    AutomationVariableMapping[]
+  sourceButtonActions AutomationButtonAction[]    @relation("AutomationButtonActionSource")
+  targetButtonActions AutomationButtonAction[]    @relation("AutomationButtonActionTarget")
+  jobs                AutomationJob[]
+
+  @@index([flowId, sortOrder])
+  @@index([triggerSource, triggerEvent])
+  @@index([isEnabled])
+  @@index([templateId])
+}
+
+model AutomationVariableMapping {
+  id                   String                  @id @default(cuid())
+  automationId         String
+  templateVariableName String
+  componentType        AutomationComponentType
+  variableIndex        Int
+  sourceField          String
+  fallbackValue        String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  automation           Automation              @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@unique([automationId, componentType, variableIndex])
+  @@index([automationId])
+}
+
+model AutomationButtonAction {
+  id                 String                 @id @default(cuid())
+  sourceAutomationId String
+  targetAutomationId String
+  actionKey          String
+  buttonText         String
+  payloadPrefix      String                 @unique
+  resourceType       AutomationResourceType
+  isActive           Boolean                @default(true)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  sourceAutomation   Automation             @relation("AutomationButtonActionSource", fields: [sourceAutomationId], references: [id], onDelete: Cascade)
+  targetAutomation   Automation             @relation("AutomationButtonActionTarget", fields: [targetAutomationId], references: [id], onDelete: Cascade)
+
+  @@index([sourceAutomationId])
+  @@index([targetAutomationId])
+  @@index([actionKey])
+  @@index([isActive])
+}
+
+model IncomingEvent {
+  id              String                  @id @default(cuid())
+  source          AutomationTriggerSource
+  eventType       AutomationTriggerEvent
+  externalEventId String?
+  resourceType    AutomationResourceType
+  resourceId      String
+  customerPhone   String?
+  payloadJson     Json
+  receivedAt      DateTime                @default(now())
+  processedAt     DateTime?
+  isProcessed     Boolean                 @default(false)
+  errorMessage    String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  jobs            AutomationJob[]
+  actionStates    AutomationActionState[]
+
+  @@unique([source, externalEventId])
+  @@index([source, eventType])
+  @@index([resourceType, resourceId])
+  @@index([customerPhone])
+  @@index([isProcessed])
+}
+
+model AutomationJob {
+  id              String                 @id @default(cuid())
+  automationId    String
+  incomingEventId String
+  resourceType    AutomationResourceType
+  resourceId      String
+  customerPhone   String?
+  scheduledAt     DateTime
+  status          AutomationJobStatus    @default(PENDING)
+  bullmqJobId     String?
+  idempotencyKey  String                 @unique
+  attemptCount    Int                    @default(0)
+  lastError       String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  automation      Automation             @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  incomingEvent   IncomingEvent          @relation(fields: [incomingEventId], references: [id], onDelete: Cascade)
+
+  @@index([automationId])
+  @@index([incomingEventId])
+  @@index([resourceType, resourceId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([bullmqJobId])
+}
+
+model AutomationActionState {
+  id            String                     @id @default(cuid())
+  flowKey       AutomationFlowKey
+  resourceType  AutomationResourceType
+  resourceId    String
+  customerPhone String?
+  state         AutomationActionStateValue
+  sourceEventId String?
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+  sourceEvent   IncomingEvent?             @relation(fields: [sourceEventId], references: [id], onDelete: SetNull)
+
+  @@unique([flowKey, resourceType, resourceId])
+  @@index([state])
+  @@index([customerPhone])
+  @@index([sourceEventId])
 }
