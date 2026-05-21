@@ -1,2 +1,3 @@
-// Worker entrypoint placeholder. Future workers should delegate business decisions to services.
-export {};
+import { startQueueWorkers } from "../modules/queues/index.js";
+
+startQueueWorkers({ registerShutdownHooks: true });

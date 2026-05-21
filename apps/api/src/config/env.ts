@@ -7,6 +7,14 @@ const envSchema = z.object({
   HOST: z.string().default("0.0.0.0"),
   DATABASE_URL: z.string().optional(),
   REDIS_URL: z.string().optional(),
+  REDIS_HOST: z.string().default("localhost"),
+  REDIS_PORT: z.coerce.number().int().positive().default(6379),
+  REDIS_PASSWORD: z.string().optional(),
+  REDIS_DB: z.coerce.number().int().min(0).default(0),
+  ENABLE_QUEUE_WORKERS: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((value) => value !== "false"),
   WEB_APP_URL: z.string().url().default("http://localhost:5173"),
   API_URL: z.string().url().default("http://localhost:4000"),
   JWT_ACCESS_SECRET: z.string().min(32).optional(),
