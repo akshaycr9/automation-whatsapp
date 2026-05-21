@@ -24,7 +24,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "queues:test": "tsx scripts/test-queues.ts"
   },
   "devDependencies": {
     "@prisma/client": "^6.1.0",
