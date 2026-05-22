@@ -13,6 +13,58 @@ export class AutomationJobRepository {
     return this.db.automationJob.findUnique({ where: { idempotencyKey } });
   }
 
+  findByIdWithRelations(id: string) {
+    return this.db.automationJob.findUnique({
+      where: { id },
+      include: {
+        incomingEvent: true,
+        automation: {
+          include: {
+            template: {
+              include: {
+                components: true,
+                variables: true,
+                buttons: true
+              }
+            },
+            variableMappings: true
+          }
+        }
+      }
+    });
+  }
+
+  markProcessing(id: string) {
+    return this.db.automationJob.update({
+      where: { id },
+      data: {
+        status: AutomationJobStatus.PROCESSING,
+        attemptCount: { increment: 1 },
+        lastError: null
+      }
+    });
+  }
+
+  markCompleted(id: string) {
+    return this.db.automationJob.update({
+      where: { id },
+      data: {
+        status: AutomationJobStatus.COMPLETED,
+        lastError: null
+      }
+    });
+  }
+
+  markSkipped(id: string, reason: string) {
+    return this.db.automationJob.update({
+      where: { id },
+      data: {
+        status: AutomationJobStatus.SKIPPED,
+        lastError: reason
+      }
+    });
+  }
+
   updateQueued(id: string, bullmqJobId: string) {
     return this.db.automationJob.update({
       where: { id },
