@@ -13,7 +13,8 @@ const automationInclude = {
       variables: true
     }
   },
-  variableMappings: true
+  variableMappings: true,
+  targetButtonActions: true
 } satisfies Prisma.AutomationInclude;
 
 export class AutomationsRepository {

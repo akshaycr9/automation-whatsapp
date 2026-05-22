@@ -78,6 +78,13 @@ type BackendTemplate = Omit<Template, "components" | "qualityRating"> & {
         }>;
       }
     | TemplateComponent[];
+  variables?: Array<{
+    componentType: "HEADER" | "BODY" | "BUTTONS" | "CAROUSEL" | "FOOTER";
+    position: number;
+    placeholder: string;
+    sampleValue: string;
+    sourceKey: string | null;
+  }>;
 };
 
 export const templateApi = {
@@ -193,7 +200,7 @@ function appendFilter(params: URLSearchParams, key: string, value: string | unde
 }
 
 function mapBackendTemplateToView(template: BackendTemplate): Template {
-  const components = mapBackendComponents(template.components);
+  const components = mapBackendComponents(template.components, template.variables);
 
   return {
     id: template.id,
@@ -211,9 +218,12 @@ function mapBackendTemplateToView(template: BackendTemplate): Template {
   };
 }
 
-function mapBackendComponents(components: BackendTemplate["components"]): TemplateComponent[] | undefined {
+function mapBackendComponents(
+  components: BackendTemplate["components"],
+  variables: BackendTemplate["variables"] = []
+): TemplateComponent[] | undefined {
   if (!components) return undefined;
-  if (Array.isArray(components)) return components;
+  if (Array.isArray(components)) return attachVariablesToComponents(components, variables);
 
   const mappedComponents: TemplateComponent[] = [];
 
@@ -255,5 +265,39 @@ function mapBackendComponents(components: BackendTemplate["components"]): Templa
     });
   }
 
-  return mappedComponents;
+  return attachVariablesToComponents(mappedComponents, variables);
+}
+
+function attachVariablesToComponents(
+  components: TemplateComponent[],
+  variables: NonNullable<BackendTemplate["variables"]>
+): TemplateComponent[] {
+  if (variables.length === 0) return components;
+
+  return components.map((component) => {
+    const componentVariables = variables.flatMap((variable) => {
+      if (variable.componentType !== component.type || !isTemplateVariableComponent(variable.componentType)) return [];
+
+      return [
+        {
+          key: `${variable.componentType.toLowerCase()}_${variable.position}`,
+          index: variable.position,
+          token: variable.placeholder,
+          componentType: variable.componentType,
+          sampleValue: variable.sampleValue
+        }
+      ];
+    });
+
+    return {
+      ...component,
+      ...(componentVariables.length > 0 ? { variables: componentVariables } : {})
+    };
+  });
+}
+
+function isTemplateVariableComponent(
+  componentType: NonNullable<BackendTemplate["variables"]>[number]["componentType"]
+): componentType is "HEADER" | "BODY" | "BUTTONS" {
+  return componentType === "HEADER" || componentType === "BODY" || componentType === "BUTTONS";
 }

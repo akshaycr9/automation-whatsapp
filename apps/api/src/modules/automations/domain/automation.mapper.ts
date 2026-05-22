@@ -27,6 +27,7 @@ export function mapAutomationFlowsToListResponse(flows: AutomationFlowRecord[]) 
             description: automation.description,
             triggerSource: automation.triggerSource,
             triggerEvent: automation.triggerEvent,
+            triggerButtonText: getTriggerButtonText(automation),
             isEnabled: automation.isEnabled,
             templateId: automation.templateId,
             templateName: automation.template?.displayName ?? automation.template?.name ?? null,
@@ -56,6 +57,7 @@ export function mapAutomationToDetailResponse(automation: AutomationRecord) {
     description: automation.description,
     triggerSource: automation.triggerSource,
     triggerEvent: automation.triggerEvent,
+    triggerButtonText: getTriggerButtonText(automation),
     isEnabled: automation.isEnabled,
     templateId: automation.templateId,
     template: automation.template
@@ -95,6 +97,12 @@ export function mapAutomationToDetailResponse(automation: AutomationRecord) {
         fallbackValue: mapping.fallbackValue
       }))
   };
+}
+
+function getTriggerButtonText(automation: AutomationRecord) {
+  const activeAction = automation.targetButtonActions?.find((action) => action.isActive);
+
+  return activeAction?.buttonText ?? null;
 }
 
 export function isAutomationConfigured(automation: AutomationRecord) {

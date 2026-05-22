@@ -46,8 +46,9 @@ const router = createBrowserRouter([
       { path: "automations", element: withRouteBoundary(<AutomationsPage />, "Automations Page") },
       {
         path: "automations/configure",
-        element: withRouteBoundary(<AutomationConfigurePage />, "Automation Configure Page")
+        element: <Navigate to="/automations" replace />
       },
+      { path: "automations/:id", element: withRouteBoundary(<AutomationConfigurePage />, "Automation Configure Page") },
       { path: "conversations", element: withRouteBoundary(<ConversationsPage />, "Conversations Page") },
       { path: "logs", element: withRouteBoundary(<LogsPage />, "Logs Page") },
       { path: "settings", element: withRouteBoundary(<SettingsPage />, "Settings Page") }

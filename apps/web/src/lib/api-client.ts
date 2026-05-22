@@ -112,11 +112,31 @@ export function createApiClient(options: ApiClientOptions = {}) {
     return request<T>(path, init, options);
   }
 
+  function put<T>(path: string, body?: unknown, options: ApiRequestOptions = {}) {
+    const init: RequestInit = { method: "PUT" };
+
+    if (body !== undefined) {
+      init.body = JSON.stringify(body);
+    }
+
+    return request<T>(path, init, options);
+  }
+
+  function patch<T>(path: string, body?: unknown, options: ApiRequestOptions = {}) {
+    const init: RequestInit = { method: "PATCH" };
+
+    if (body !== undefined) {
+      init.body = JSON.stringify(body);
+    }
+
+    return request<T>(path, init, options);
+  }
+
   function del<T>(path: string, options: ApiRequestOptions = {}) {
     return request<T>(path, { method: "DELETE" }, options);
   }
 
-  return { delete: del, get, post };
+  return { delete: del, get, patch, post, put };
 }
 
 export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
