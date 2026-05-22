@@ -83,6 +83,13 @@ export type AutomationRecord = {
   };
   template: AutomationTemplateRecord | null;
   variableMappings: AutomationVariableMappingRecord[];
+  targetButtonActions?: Array<{
+    id: string;
+    actionKey: string;
+    buttonText: string;
+    payloadPrefix: string;
+    isActive: boolean;
+  }>;
 };
 
 export type AutomationFlowRecord = {

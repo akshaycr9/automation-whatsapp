@@ -57,5 +57,10 @@ export const secondaryRouteMeta: Record<string, SecondaryRouteMeta> = {
     title: "Configure automation",
     subtitle: "Review trigger, message, and guardrails",
     backTo: "/automations"
+  },
+  "/automations/:id": {
+    title: "Configure automation",
+    subtitle: "Review trigger, message, and guardrails",
+    backTo: "/automations"
   }
 };
