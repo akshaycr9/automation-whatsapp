@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { logger } from "../../../lib/logger.js";
+import { IncomingEventRepository } from "../../incoming-events/incoming-event.repository.js";
 import { AutomationEventQueueService } from "../../queues/services/automation-event-queue.service.js";
 import {
   adaptShopifyWebhook,
@@ -8,7 +9,6 @@ import {
 } from "../adapters/shopify-webhook.adapter.js";
 import { shopifyRouteTopicSchema } from "../dto/shopify-webhook.dto.js";
 import type { ShopifyRouteTopic, ShopifyWebhookHeaders } from "../domain/shopify.types.js";
-import { IncomingEventRepository } from "../repository/incoming-event.repository.js";
 import { ShopifyEventService } from "./shopify-event.service.js";
 import { ShopifyWebhookVerificationService } from "./shopify-webhook-verification.service.js";
 
