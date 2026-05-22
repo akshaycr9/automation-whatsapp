@@ -7,6 +7,7 @@ import { errorHandler } from "./middleware/error-handler.js";
 import { notFound } from "./middleware/not-found.js";
 import { requestLogger } from "./middleware/request-logger.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
+import { automationsRoutes } from "./modules/automations/automations.routes.js";
 import { templatesRoutes } from "./modules/templates/templates.routes.js";
 import { webhooksRoutes } from "./modules/webhooks/webhooks.routes.js";
 
@@ -47,6 +48,7 @@ export function createApp() {
   });
 
   app.use("/api/auth", authRoutes);
+  app.use("/api/automations", automationsRoutes);
   app.use("/api/templates", templatesRoutes);
   app.use("/api/webhooks", webhooksRoutes);
   app.use("/webhooks", webhooksRoutes);
