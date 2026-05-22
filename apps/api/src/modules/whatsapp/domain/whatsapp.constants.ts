@@ -1,0 +1,2 @@
+export const WHATSAPP_BUTTON_ACTION_KEYS = ["COD_CONFIRM", "COD_CANCEL"] as const;
+export const WHATSAPP_BUTTON_RESOURCE_TYPES = ["ORDER"] as const;
