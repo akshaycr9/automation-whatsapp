@@ -83,13 +83,68 @@ Auth error responses use:
 }
 ```
 
+## Automations
+
+### `GET /api/automations`
+
+Returns seeded automation flows grouped with their predefined automations. Flows and automations are sorted by `sortOrder`.
+
+### `GET /api/automations/:id`
+
+Returns one automation with template selection, delay, variable mappings, trigger metadata, and configuration status.
+
+### `PUT /api/automations/:id`
+
+Updates user-configurable fields only: `templateId`, `delayMinutes`, and `variableMappings`. System-defined fields such as key, trigger source/event, flow, name, and sort order are not accepted as editable configuration.
+
+### `PATCH /api/automations/:id/toggle`
+
+Enables or disables an automation. Enabling requires a selected template and all required template variables mapped or given fallbacks.
+
+### `GET /api/automations/:id/field-options`
+
+Returns allowed source-field options for the automation flow.
+
+## Webhooks
+
+### `POST /api/webhooks/shopify/:topic`
+
+Receives Shopify webhooks for supported topics such as `orders-create`, `orders-fulfilled`, `orders-cancelled`, and `checkouts-update`. Requests must include a valid `X-Shopify-Hmac-Sha256` signature.
+
+### `GET /api/webhooks/whatsapp`
+
+Handles Meta webhook verification with `hub.mode`, `hub.verify_token`, and `hub.challenge`.
+
+### `POST /api/webhooks/whatsapp`
+
+Receives WhatsApp webhook events. Supported v1 events are interactive button/quick-reply payloads such as `COD_CONFIRM:ORDER:123456789` and `COD_CANCEL:ORDER:123456789`.
+
+## Environment
+
+Redis/BullMQ:
+
+- `REDIS_URL`, or `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, and `REDIS_DB`
+- `ENABLE_QUEUE_WORKERS` when worker startup is gated by environment
+
+Shopify:
+
+- `SHOPIFY_WEBHOOK_SECRET`
+
+Meta/WhatsApp:
+
+- `META_VERIFY_TOKEN`
+- `META_APP_SECRET` for POST signature verification when configured
+- Existing WhatsApp sender credentials used by template sending
+
+Queue names:
+
+- `automation-events-queue`
+- `automation-send-queue`
+
 ## Planned Endpoint Groups
 
 - `/dashboard`: operational analytics
 - `/templates`: WhatsApp templates
-- `/automations`: predefined automation configuration
 - `/conversations`: inbox, threads, replies
 - `/logs`: webhook, message, automation, error logs
 - `/settings`: Shopify, Meta/WhatsApp, PWA, admin settings
-- `/webhooks/shopify`: Shopify webhook receiver
-- `/webhooks/meta`: Meta WhatsApp webhook receiver

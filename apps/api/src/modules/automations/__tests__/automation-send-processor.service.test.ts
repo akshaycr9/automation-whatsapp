@@ -79,7 +79,10 @@ function createJob(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function createProcessor(job = createJob(), overrides: Record<string, unknown> = {}) {
+function createProcessor(
+  job: ReturnType<typeof createJob> | null = createJob(),
+  overrides: Record<string, unknown> = {}
+) {
   const jobs = {
     findByIdWithRelations: vi.fn().mockResolvedValue(job),
     markProcessing: vi.fn(),
@@ -144,6 +147,24 @@ it("does not resend completed jobs", async () => {
   expect(result).toEqual({ status: "ignored", reason: "Automation job is already COMPLETED." });
 });
 
+it("does not process cancelled or skipped jobs", async () => {
+  for (const status of [AutomationJobStatus.CANCELLED, AutomationJobStatus.SKIPPED]) {
+    const { processor, jobs, sender } = createProcessor(createJob({ status }));
+
+    const result = await processor.processAutomationJob("automation_job_123");
+
+    expect(jobs.markProcessing).not.toHaveBeenCalled();
+    expect(sender.sendTemplateMessage).not.toHaveBeenCalled();
+    expect(result).toEqual({ status: "ignored", reason: `Automation job is already ${status}.` });
+  }
+});
+
+it("throws a controlled error when the automation job is missing", async () => {
+  const { processor } = createProcessor(null);
+
+  await expect(processor.processAutomationJob("missing_job")).rejects.toThrow("Automation job not found: missing_job");
+});
+
 it("skips disabled automations", async () => {
   const job = createJob({
     automation: {
@@ -158,6 +179,29 @@ it("skips disabled automations", async () => {
   expect(sender.sendTemplateMessage).not.toHaveBeenCalled();
   expect(jobs.markSkipped).toHaveBeenCalledWith("automation_job_123", "Automation is disabled.");
   expect(result).toEqual({ status: "skipped", reason: "Automation is disabled." });
+});
+
+it("skips jobs without a customer phone", async () => {
+  const base = createJob();
+  const job = createJob({
+    customerPhone: null,
+    incomingEvent: {
+      ...base.incomingEvent,
+      customerPhone: null,
+      payloadJson: {
+        id: 123456789,
+        name: "#1001",
+        payment_gateway_names: ["razorpay"]
+      }
+    }
+  });
+  const { processor, jobs, sender } = createProcessor(job);
+
+  const result = await processor.processAutomationJob("automation_job_123");
+
+  expect(sender.sendTemplateMessage).not.toHaveBeenCalled();
+  expect(jobs.markSkipped).toHaveBeenCalledWith("automation_job_123", "Customer phone is missing.");
+  expect(result).toEqual({ status: "skipped", reason: "Customer phone is missing." });
 });
 
 it("skips unresolved required variables", async () => {
