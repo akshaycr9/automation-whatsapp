@@ -26,6 +26,7 @@ const envSchema = z.object({
   META_ACCESS_TOKEN: z.string().optional(),
   META_APP_SECRET: z.string().optional(),
   META_VERIFY_TOKEN: z.string().optional(),
+  SHOPIFY_WEBHOOK_SECRET: z.string().optional(),
   WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   COOKIE_SECURE: z

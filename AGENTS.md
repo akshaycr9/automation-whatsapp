@@ -31,6 +31,92 @@ Included: single admin authentication, dashboard, WhatsApp templates, predefined
 
 Excluded: multi-user teams, SaaS billing, multi-store support, automation builder, template editing, broadcasts, AI chatbot, audio/video sending, advanced analytics, native mobile apps.
 
+# Agent Instructions for This Repository
+
+This project is a production-oriented WhatsApp automation application. The agent must prioritize correctness, maintainability, minimal changes, and verified outcomes over speed or speculative improvements.
+
+## Core Behaviour Rules
+
+### 1. Think Before Coding
+
+Do not assume silently. Before implementing any task:
+
+- State the goal in your own words.
+- State important assumptions explicitly.
+- If multiple interpretations exist, mention them and choose the safest one.
+- If something is unclear and implementation could go in the wrong direction, stop and ask.
+- Surface tradeoffs before choosing an approach.
+- Prefer the simpler approach when it satisfies the requirement.
+
+Do not hide confusion. If something is ambiguous, name the ambiguity.
+
+### 2. Simplicity First
+
+Write the minimum code required to solve the requested problem.
+
+- Do not add features beyond what was asked.
+- Do not create abstractions for single-use code.
+- Do not add “future flexibility” unless explicitly requested.
+- Do not add unnecessary defensive code for impossible or irrelevant scenarios.
+- Avoid large rewrites when a small targeted fix is enough.
+- If a solution can be 50 lines instead of 200, prefer the 50-line solution.
+- Keep business logic easy to understand.
+
+### 3. Surgical Changes Only
+
+Touch only the files and code needed for the task.
+
+- Do not refactor unrelated code.
+- Do not reformat unrelated files.
+- Do not rename variables, functions, files, or components unless required.
+- Match the existing project style, naming, and patterns.
+- Do not “improve” adjacent code unless it is directly necessary for the requested change.
+- If dead code, duplication, or architectural issues are noticed, mention them in the final summary instead of changing them without permission.
+- Keep diffs small and reviewable.
+
+### 4. Goal-Driven Execution
+
+Convert every task into verifiable success criteria.
+
+Examples:
+
+- “Add validation” means: define the validation rules, add tests where appropriate, implement, then verify.
+- “Fix a bug” means: reproduce the bug if possible, fix it, then verify the fix.
+- “Refactor X” means: confirm behaviour before and after, and ensure tests/build still pass.
+- “Update UI” means: confirm the changed screen/component works responsively and does not break existing behaviour.
+
+Before finishing:
+
+- Run relevant tests, lint, type-check, or build commands when available.
+- If a command cannot be run, explain why.
+- Clearly list what was changed.
+- Clearly list how the change was verified.
+- Clearly list any remaining risks or follow-ups.
+
+## Project-Specific Expectations
+
+- Prefer existing architecture and conventions over introducing new patterns.
+- For frontend work, preserve separation of concerns:
+  - presentational components should stay mostly UI-focused;
+  - API calls and server-state logic should stay in hooks/services;
+  - TanStack Query should be used consistently where server state is involved.
+- For backend work, keep service/controller/repository boundaries clean if already present.
+- For Prisma/database changes, avoid destructive migrations unless explicitly requested.
+- For authentication, automation, webhook, and WhatsApp template features, prioritize data integrity and predictable state transitions.
+- Do not introduce new libraries unless there is a clear need and the existing stack cannot solve the problem cleanly.
+- Do not change public API contracts unless the task explicitly requires it.
+- Do not break existing flows while implementing a new feature.
+
+## Response Format After Completing Work
+
+At the end of each task, provide:
+
+1. Summary of changes
+2. Files changed
+3. Verification performed
+4. Any assumptions made
+5. Any risks or follow-ups
+
 ## Frontend Rules
 
 - Use TanStack Query for server state only.
